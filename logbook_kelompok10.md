@@ -1,4 +1,4 @@
-**LOGBOOK - Kelompok 12 Kelas B**  
+**LOGBOOK - Kelompok 10 Kelas B**  
 **Anggota**  
 1. Ghazali Habibie A (J0404241145) - Lead  
 2. Gregorius Gil Ovidio Sebayang (J0404241088) - Red Team  
