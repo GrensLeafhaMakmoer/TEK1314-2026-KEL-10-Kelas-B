@@ -1,25 +1,41 @@
-# IP Plan - Kelompok 10 (IoT Protocol Guardian)
+# IP Plan - Kelompok 10 
 
-**Network:** 192.168.10.0/24 | Netmask: 255.255.255.0 | Mode: Host-Only (isolated)
+Proyek IoT: **sistem autodosing nutrisi AB Mix pada tanaman melon**.
 
-| Hostname | Peran | IP Address | OS |
+
+## Topologi Jaringan
+
+## 1. Segmen Jaringan
+
+| Parameter | Nilai |
+|---|---|
+| Network | `192.168.10.0/24` |
+| Subnet mask | `255.255.255.0` |
+| Broadcast | `192.168.10.255` |
+| Alokasi alamat | IP statis |
+| Rencana jaringan VM | Host-Only/isolated|
+
+Subnet `/24` dan mode Host-Only merupakan rencana implementasi VM.
+
+## 2. Alokasi IP dan Hostname
+
+| Hostname | Peran | IP Address | Sistem Operasi | 
+|---|---|---|---|---|
+| CYBEROPS-KEL10 | Attacker Node | `192.168.10.100/24` | CyberOps Workstation | 
+| SRV-IOT-KEL10 | Target Node | `192.168.10.5/24` | Ubuntu Server | 
+| S0-KEL10 | Monitoring Node | `192.168.10.200/24` | Security Onion | 
+
+## 3. Monitoring Traffic
+
+Traffic pengujian berasal dari `192.168.10.100` menuju Target `192.168.10.5`. Monitoring menggunakan IP `192.168.10.200` sesuai diagram.
+
+## 4. Daftar Port, Layanan, dan Potensi Celah
+
+| Port/Protokol | Layanan | Status pada Target | Potensi Celah yang Perlu Diuji |
 |---|---|---|---|
-| SRV-IOT-KEL10 | Target Server (Korban) | 192.168.10.5 | Ubuntu Server 22.04 LTS CLI + Mosquitto MQTT |
-| KALI-KEL10 | Attacker Node | 192.168.10.100 | Kali Linux |
-| SO-KEL10 | Monitoring Node | 192.168.10.200 | Security Onion |
-
-Keterangan:
-- Segmen 192.168.10.0/24 unik milik Kelompok 10.
-- Semua VM memakai IP statis dan jaringan Host-Only agar isolated sesuai RoE.
-- Serangan hanya ditujukan ke 192.168.10.5.
-- Security Onion memakai NIC tambahan mode promiscuous untuk memantau trafik MQTT.
-
-## Daftar Port & Potensi Celah (Red Team)
-
-| Port | Service | Status di Target | Potensi Eksploitasi |
-|---|---|---|---|
-| 1883/TCP | MQTT (Mosquitto) | OPEN | Anonymous publish/subscribe, replay attack perintah ON/OFF tanpa izin, eavesdropping karena plain-text |
-| 8883/TCP | MQTT over TLS | CLOSED (rencana hardening) | Dibuka setelah hardening dengan username/password + TLS untuk menutup celah 1883 |
-| 22/TCP | SSH | OPEN (filtered) | Brute-force password, hanya diizinkan dari 192.168.10.100, dimonitor Security Onion |
-| 80/TCP | HTTP | CLOSED | Tidak dipakai di skenario IoT, wajib tetap tertutup. Jika terbuka (misal terinstall web dashboard) berpotensi directory traversal & info disclosure, harus difirewall |
-
+| `22/TCP` | SSH | Belum diverifikasi | Password lemah/default, login root langsung, dan percobaan login berulang jika pembatasan akses tidak diterapkan. |
+| `9000/TCP` | Realtime Database Emulator | Belum diverifikasi; jika memilih Realtime Database | Security Rules terlalu permisif memungkinkan pembacaan data sensor atau perubahan setpoint/perintah dosing tanpa izin; validasi yang kurang memungkinkan data tidak sesuai. |
+| `8080/TCP` | Firestore Emulator | Belum diverifikasi; alternatif jika memilih Firestore | Kesalahan Security Rules atau pembatasan peran memungkinkan akses dokumen milik pengguna/perangkat lain dan perubahan konfigurasi dosing tanpa izin. |
+| `9099/TCP` | Authentication Emulator | Belum diverifikasi; jika digunakan | Endpoint administrasi emulator yang terekspos dapat memungkinkan manipulasi akun uji. Token emulator tidak boleh dipercaya oleh sistem produksi. |
+| `5000/TCP` | Dashboard melalui Hosting Emulator | Belum diverifikasi; jika digunakan | XSS jika input ditampilkan tanpa penanganan yang aman; perubahan setpoint/perintah dosing tanpa izin jika otorisasi hanya diterapkan pada UI. |
+| `4000/TCP` | Emulator UI | Belum diverifikasi; direncanakan hanya pada loopback | Paparan data dan fungsi administrasi emulator jika UI dapat diakses pihak tidak berwenang. |
