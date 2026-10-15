@@ -1,60 +1,66 @@
-# Hardening Checklist — Ubuntu Target Kelompok 10
+# Checklist Hardening Keamanan — Ubuntu Server
 
-## Lingkup dan status
+**Kelompok 10 | TEK1314 — PBL Keamanan Siber | Checkpoint Minggu 9**
+
+## 1. Tujuan dan Ruang Lingkup
+
+Dokumen ini menyajikan penerapan dan hasil verifikasi delapan kontrol hardening pada replika sistem monitoring nutrisi AB Mix tanaman melon. Kontrol dikelompokkan ke dalam kategori Access & Authentication, Service & Attack Surface, serta Data & Application.
 
 - Target: Ubuntu Server `srv-iot-kel10`, IP lab `192.168.10.5`.
-- Penguji: CyberOps Workstation `192.168.10.100`; host administrasi pada aturan UFW: `192.168.10.1`.
+- Perangkat penguji: CyberOps Workstation `192.168.10.100`; host administrasi pada aturan UFW: `192.168.10.1`.
 - Layanan: SSH, Nginx untuk dashboard HTML/JavaScript, Firebase Realtime Database Emulator, dan simulator Python.
 - Project demo / namespace aplikasi: `demo-melon-lab`; data dummy: `/lab_dummy/sensor`.
-- Bukti berupa screenshot di `docs/blueteam/evidence/`. Checklist ini tidak berarti konfigurasi diterapkan ke Firebase cloud atau perangkat fisik.
+- Dokumentasi bukti: tangkapan layar pada direktori `docs/blueteam/evidence/`, ditautkan pada setiap kontrol.
 
-Arti status:
+Seluruh implementasi dan pengujian dilakukan pada lingkungan laboratorium menggunakan data dummy. Ruang lingkup tidak mencakup Firebase cloud, sensor fisik, maupun pengendalian pompa. Komunikasi REST pada replika menggunakan HTTP dan belum dilengkapi TLS/HTTPS.
 
-- **Done**: tujuan kontrol yang disebutkan sudah didukung bukti konfigurasi atau pengujian yang relevan. Tidak berarti seluruh aspek keamanan aplikasi selesai.
-- **Partial**: baru sebagian diterapkan atau verifikasi utama belum tersedia.
-- **Not Yet**: rencana, belum ada bukti penerapan dan verifikasi.
+### Kriteria Status
 
-## Ringkasan
+- **Done**: kontrol telah diterapkan dan didukung bukti konfigurasi atau hasil pengujian sesuai lingkup verifikasi yang dijelaskan.
+- **Partial**: implementasi atau verifikasi kontrol baru terpenuhi sebagian.
+- **Not Yet**: kontrol belum diterapkan atau belum memiliki bukti verifikasi.
 
-| ID | Kategori | Kontrol | Status | Hasil utama / tindak lanjut |
+## 2. Ringkasan Implementasi
+
+| ID | Kategori | Kontrol | Status | Hasil Verifikasi |
 |---|---|---|---|---|
 | A1 | Access & Authentication | Menolak login SSH langsung sebagai root | Done | Konfigurasi efektif `permitrootlogin no`; percobaan root ditolak. |
-| A2 | Access & Authentication | Fail2ban untuk kegagalan autentikasi SSH | Done | Jail aktif, IP `.100` masuk daftar ban, koneksi SSH baru ditolak. |
+| A2 | Access & Authentication | Pembatasan percobaan autentikasi SSH menggunakan Fail2ban | Done | Jail aktif, IP `192.168.10.100` masuk daftar blokir, dan koneksi SSH baru ditolak. |
 | B1 | Service & Attack Surface | Membatasi akses masuk menggunakan UFW | Done | SSH/HTTP dibatasi ke IP lab yang ditentukan; port 9000 dari CyberOps berubah menjadi filtered. |
 | B2 | Service & Attack Surface | Mengikat database ke localhost | Done | Listener database berubah dari IP jaringan menjadi `127.0.0.1:9000`. |
-| B3 | Service & Attack Surface | Mengurangi informasi versi Nginx pada respons | Not Yet | Rencana `server_tokens off`; perlu bukti sebelum/sesudah dan uji akses dashboard. |
+| B3 | Service & Attack Surface | Mengurangi informasi versi Nginx pada respons | Done | Header berubah dari `nginx/1.18.0 (Ubuntu)` menjadi `nginx`; halaman dashboard merespons HTTP 200. |
 | C1 | Data & Application | Security Rules dan validasi payload sensor | Done | Data valid HTTP 200; `humidity:150` ditolak HTTP 401 setelah namespace rules diselaraskan. |
 | C2 | Data & Application | Backup manual dan verifikasi pemulihan data | Done | Ekspor berhasil; setelah perubahan ke 80, nilai kelembapan kembali ke 72 pada verifikasi pemulihan. |
-| C3 | Data & Application | Membatasi endpoint proxy sensor menjadi baca saja | Not Yet | Blok GET-only pernah disarankan, tetapi konfigurasi aktif dan tes penolakan metode tulis belum terdokumentasi. |
+| C3 | Data & Application | Membatasi akses file konfigurasi dan data aplikasi | Done | Permission direktori aplikasi menjadi `700` dan tiga file menjadi `600`; akses baca pemilik diizinkan, sedangkan akun `nobody` ditolak. |
 
-**Progres: 6 Done, 0 Partial, 2 Not Yet.** Terdapat 8 entri rencana dengan minimal 2 per kategori, tetapi **belum 8 kontrol selesai**. B3 dan C3 tidak dihitung sebagai implementasi yang sudah dilakukan.
+**Rekapitulasi: 8 Done, 0 Partial, dan 0 Not Yet.** Implementasi terdiri atas **2 kontrol kategori A, 3 kontrol kategori B, dan 3 kontrol kategori C**, sehingga memenuhi jumlah minimal delapan kontrol dengan sedikitnya dua kontrol pada setiap kategori. Status dinilai berdasarkan bukti yang tersedia dan dibatasi oleh cakupan verifikasi masing-masing kontrol; status tersebut tidak menyatakan sistem telah aman untuk penggunaan produksi.
 
-## A — Access & Authentication
+## 3. Kategori A — Access & Authentication
 
 ### A1. Menonaktifkan login root langsung melalui SSH — Done
 
-- **Before:** baseline awal yang pernah diperiksa adalah `without-password` (password root dilarang, metode non-password masih mungkin). Screenshot BEFORE yang disimpan menunjukkan `PermitRootLogin yes` dan login root berhasil pada **percobaan sementara yang sengaja diaktifkan**. Bukti tersebut bukan baseline asli dan tidak boleh dilaporkan sebagai kondisi bawaan Ubuntu.
-- **Perubahan:** menetapkan `PermitRootLogin no` pada `/etc/ssh/sshd_config.d/00-pbl-hardening.conf`, memvalidasi sintaks, lalu reload SSH.
-- **After:** output konfigurasi efektif menunjukkan `permitrootlogin no`; login root baru dari CyberOps ditolak.
-- **Verifikasi:** `sudo /usr/sbin/sshd -t`, `sudo /usr/sbin/sshd -T`, dan `ssh root@192.168.10.5`.
-- **Batasan:** `sudo -i` oleh akun berhak tetap diperbolehkan. Penolakan login saja tidak membuktikan kebijakan root tanpa output konfigurasi efektif. Login akun biasa tersedia pada bukti A2.
+- **Tujuan:** mencegah autentikasi SSH langsung menggunakan akun root dan mempertahankan administrasi melalui akun pengguna yang berwenang.
+- **Kondisi awal (Before):** pemeriksaan awal menunjukkan `without-password`, yang melarang autentikasi password root tetapi masih memungkinkan metode non-password. Untuk demonstrasi terkontrol, login root sempat diaktifkan dengan `PermitRootLogin yes`. Bukti Before yang dilampirkan merekam kondisi demonstrasi tersebut, **bukan baseline awal atau konfigurasi bawaan Ubuntu**.
+- **Implementasi:** menetapkan `PermitRootLogin no` pada `/etc/ssh/sshd_config.d/00-pbl-hardening.conf`, memvalidasi sintaks, dan memuat ulang layanan SSH.
+- **Hasil verifikasi (After):** konfigurasi efektif menunjukkan `permitrootlogin no` dan percobaan login root baru dari CyberOps ditolak. Pemeriksaan dilakukan menggunakan `sudo /usr/sbin/sshd -t`, `sudo /usr/sbin/sshd -T`, serta `ssh root@192.168.10.5`.
+- **Cakupan dan batasan:** kontrol membatasi login SSH langsung, bukan peningkatan hak akses melalui `sudo` oleh pengguna yang berwenang. Bukti akses SSH akun biasa tercantum pada A2.
 
 Bukti:
 
-- [Konfigurasi percobaan sementara BEFORE](<evidence/kontrol A1 -SSH permitlogin/ssh-before-hardening.png>)
-- [Login root pada percobaan sementara](<evidence/kontrol A1 -SSH permitlogin/hasil-before-hardening.png>)
-- [File hardening](<evidence/kontrol A1 -SSH permitlogin/afterhardening-ssh-1.png>)
-- [Konfigurasi efektif AFTER](<evidence/kontrol A1 -SSH permitlogin/after-hardening-ssh.png>)
-- [Percobaan login root ditolak](<evidence/kontrol A1 -SSH permitlogin/hasil-after-hardening.png>)
+- [Konfigurasi demonstrasi BEFORE](<evidence/kontrol A1 — SSH permitlogin/ssh-before-hardening.png>)
+- [Login root pada demonstrasi terkontrol](<evidence/kontrol A1 — SSH permitlogin/hasil-before-hardening.png>)
+- [File konfigurasi hardening](<evidence/kontrol A1 — SSH permitlogin/afterhardening-ssh-1.png>)
+- [Konfigurasi efektif AFTER](<evidence/kontrol A1 — SSH permitlogin/after-hardening-ssh.png>)
+- [Percobaan login root ditolak](<evidence/kontrol A1 — SSH permitlogin/hasil-after-hardening.png>)
 
 ### A2. Pembatasan percobaan login SSH dengan Fail2ban — Done
 
-- **Before:** paket/unit Fail2ban belum ditemukan; akun biasa dapat login melalui SSH.
-- **Perubahan:** memasang Fail2ban dan mengaktifkan jail `sshd` pada `/etc/fail2ban/jail.d/pbl-sshd.local` dengan `backend=systemd`, `port=22`, `maxretry=5`, `findtime=600`, dan `bantime=120`.
-- **After:** konfigurasi lolos tes, layanan aktif, IP CyberOps `192.168.10.100` terdaftar sebagai banned.
-- **Verifikasi:** `sudo fail2ban-client -t`, `sudo fail2ban-client status sshd`, dan percobaan login gagal terkontrol dari CyberOps; koneksi SSH baru kemudian ditolak.
-- **Batasan:** ban 120 detik adalah parameter demonstrasi lab. Pemulihan/unban dan login ulang setelah ban belum memiliki screenshot tersendiri. Autentikasi password akun biasa tetap dipertahankan.
-- **Catatan folder:** nama folder bukti masih menyebut SSH key-based authentication, tetapi isinya adalah pengujian **Fail2ban**, bukan bukti penerapan autentikasi key-only.
+- **Tujuan:** membatasi percobaan autentikasi SSH berulang dengan memblokir sementara alamat IP sumber.
+- **Kondisi awal (Before):** paket dan unit layanan Fail2ban belum tersedia; akun biasa dapat mengakses SSH.
+- **Implementasi:** memasang Fail2ban dan mengaktifkan jail `sshd` pada `/etc/fail2ban/jail.d/pbl-sshd.local` dengan parameter `backend=systemd`, `port=22`, `maxretry=5`, `findtime=600`, dan `bantime=120`.
+- **Hasil verifikasi (After):** konfigurasi dinyatakan valid, layanan aktif, dan IP CyberOps `192.168.10.100` tercantum pada daftar blokir setelah percobaan autentikasi gagal. Koneksi SSH baru dari sumber tersebut kemudian ditolak. Verifikasi menggunakan `sudo fail2ban-client -t`, `sudo fail2ban-client status sshd`, dan pengujian SSH terkontrol.
+- **Cakupan dan batasan:** durasi blokir 120 detik digunakan untuk demonstrasi laboratorium. Pemulihan akses setelah blokir belum didokumentasikan secara terpisah. Autentikasi password akun biasa tetap diaktifkan.
+- **Keterangan bukti:** direktori menggunakan nama lama “SSH key-based authentication”; seluruh bukti pada bagian ini mendokumentasikan Fail2ban, bukan penerapan autentikasi key-only.
 
 Bukti:
 
@@ -65,15 +71,15 @@ Bukti:
 - [Daftar IP yang diblokir](<evidence/kontrol A2 — SSH key-based authentication/fail2ban-after-ip-banned.png>)
 - [Percobaan gagal dan koneksi ditolak](<evidence/kontrol A2 — SSH key-based authentication/fail2ban-failed-login-attempts.png>)
 
-## B — Service & Attack Surface
+## 4. Kategori B — Service & Attack Surface
 
 ### B1. Firewall hanya mengizinkan akses yang diperlukan — Done
 
-- **Before:** UFW sudah aktif dengan default deny incoming dan allow outgoing, tetapi SSH dan profil Nginx HTTP masih diizinkan dari Anywhere (IPv4/IPv6). Port 9000 diizinkan dari CyberOps. Scan menunjukkan 22, 80, dan 9000 open.
-- **Perubahan:** memberi izin TCP 22 dan 80 dari `.100` dan `.1`, menghapus izin luas SSH/Nginx termasuk pasangan IPv6, dan menghapus izin langsung port 9000 dari CyberOps.
-- **After:** aturan masuk hanya menampilkan izin sumber lab tersebut untuk SSH/HTTP. Scan CyberOps menunjukkan 22 dan 80 open, 9000 filtered.
-- **Verifikasi:** `sudo ufw status verbose`, `sudo ss -lntup`, dan `nmap -sT -p 22,80,9000 192.168.10.5`.
-- **Batasan:** belum ada bukti tes dari sumber yang tidak diizinkan untuk port 22/80, atau uji IPv6 terpisah. Default allow outgoing bukan isolasi internet; adapter NAT perlu dikelola sesuai skenario lab. Screenshot dashboard AFTER belum tersedia.
+- **Tujuan:** membatasi koneksi masuk pada layanan dan alamat IP sumber yang diperlukan untuk operasional laboratorium.
+- **Kondisi awal (Before):** UFW telah aktif dengan kebijakan default deny incoming dan allow outgoing. SSH dan Nginx HTTP masih diizinkan dari seluruh sumber IPv4/IPv6, sedangkan port 9000 diizinkan dari CyberOps. Pemindaian menunjukkan port 22, 80, dan 9000 berstatus open.
+- **Implementasi:** membatasi izin TCP 22 dan 80 ke `192.168.10.100` dan `192.168.10.1`, menghapus aturan akses umum SSH/Nginx beserta pasangan IPv6, serta menghapus izin akses langsung CyberOps ke port 9000.
+- **Hasil verifikasi (After):** aturan UFW menampilkan sumber yang ditentukan untuk SSH/HTTP. Pemindaian dari CyberOps menunjukkan port 22 dan 80 tetap open, sedangkan port 9000 menjadi filtered. Pemeriksaan menggunakan `sudo ufw status verbose`, `sudo ss -lntup`, dan `nmap -sT -p 22,80,9000 192.168.10.5`.
+- **Cakupan dan batasan:** pengujian dilakukan dari CyberOps; pengujian sumber lain dan IPv6 secara terpisah belum didokumentasikan. Kebijakan allow outgoing tidak memberikan isolasi internet. Verifikasi pada bagian ini mencakup aturan firewall dan keterjangkauan port, bukan tampilan dashboard.
 
 Bukti:
 
@@ -81,15 +87,15 @@ Bukti:
 - [Scan BEFORE](<evidence/Kontrol B1 — Firewall hanya mengizinkan layanan yang diperlukan/before-hasil-nmap.png>)
 - [Perubahan dan aturan AFTER](<evidence/Kontrol B1 — Firewall hanya mengizinkan layanan yang diperlukan/after-ufw.png>)
 - [Scan AFTER](<evidence/Kontrol B1 — Firewall hanya mengizinkan layanan yang diperlukan/after-hasil-nmap.png>)
-- [Pemeriksaan ulang aturan yang sudah diterapkan](<evidence/Kontrol B1 — Firewall hanya mengizinkan layanan yang diperlukan/konfig-ufw.png>) — pesan aturan sudah ada/tidak ditemukan berasal dari pengulangan command, bukan penerapan pertama.
+- [Pemeriksaan ulang aturan](<evidence/Kontrol B1 — Firewall hanya mengizinkan layanan yang diperlukan/konfig-ufw.png>) — pesan aturan sudah ada/tidak ditemukan merupakan hasil pengulangan perintah setelah konfigurasi diterapkan.
 
 ### B2. Database hanya mendengarkan pada localhost — Done
 
-- **Before:** proses Java database mendengarkan pada `[::ffff:192.168.10.5]:9000`.
-- **Perubahan:** mengganti host emulator menjadi `127.0.0.1` di `firebase.json`. URL simulator dan upstream proxy Nginx harus memakai localhost agar alur aplikasi tetap berfungsi.
-- **After:** hasil `ss` menunjukkan listener `[::ffff:127.0.0.1]:9000`, bukan alamat jaringan atau wildcard.
-- **Verifikasi:** `sudo ss -lntp 'sport = :9000'`; akses REST lokal juga terlihat pada pengujian C1/C2.
-- **Batasan:** bukti listener sudah tersedia, tetapi screenshot simulator dan dashboard bekerja setelah perubahan belum dilampirkan. Binding loopback tidak menggantikan Security Rules dan tidak melindungi dari proses lokal yang memiliki akses.
+- **Tujuan:** menghilangkan paparan langsung layanan database pada antarmuka jaringan Target.
+- **Kondisi awal (Before):** layanan database mendengarkan pada `[::ffff:192.168.10.5]:9000`.
+- **Implementasi:** mengubah alamat host emulator pada `firebase.json` menjadi `127.0.0.1`. Alamat localhost digunakan sebagai tujuan akses lokal simulator dan upstream proxy Nginx.
+- **Hasil verifikasi (After):** `sudo ss -lntp 'sport = :9000'` menunjukkan listener `[::ffff:127.0.0.1]:9000`, bukan alamat jaringan atau wildcard. Akses REST lokal turut terdokumentasi pada pengujian C1 dan C2.
+- **Cakupan dan batasan:** verifikasi berfokus pada alamat listener dan akses REST lokal. Operasional simulator serta tampilan dashboard setelah perubahan tidak didokumentasikan pada bagian ini. Pembatasan loopback tidak menggantikan Security Rules dan tidak membatasi proses lokal yang telah memiliki akses.
 
 Bukti:
 
@@ -97,22 +103,31 @@ Bukti:
 - [Konfigurasi localhost](<evidence/kontrol B2 — Bind ke localhost/localhost-config.png>)
 - [Listener AFTER](<evidence/kontrol B2 — Bind ke localhost/after-db-listener.png>)
 
-### B3. Mengurangi informasi versi Nginx — Not Yet
+### B3. Mengurangi informasi versi Nginx — Done
 
-- **Rencana:** periksa header HTTP awal, tetapkan `server_tokens off` pada konfigurasi Nginx yang aktif, validasi `nginx -t`, lalu reload.
-- **Kriteria selesai:** header/halaman error tidak mengungkap nomor versi Nginx dan dashboard tetap dapat diakses. Nama produk Nginx masih bisa terlihat; kontrol ini hanya mengurangi pengungkapan informasi, bukan menggantikan pembaruan keamanan.
-- **Bukti:** belum tersedia. Jangan mengubah kembali pengaturan aman jika ternyata sudah diterapkan; dokumentasikan kondisi yang ditemukan.
+- **Tujuan:** mengurangi pengungkapan informasi versi perangkat lunak melalui respons HTTP.
+- **Kondisi awal (Before):** pemeriksaan `curl -I http://127.0.0.1/dashboard.html` menghasilkan HTTP 200 dengan header `Server: nginx/1.18.0 (Ubuntu)`. Directive `server_tokens off` pada konfigurasi masih dikomentari.
+- **Implementasi:** mengaktifkan `server_tokens off;` di dalam blok `http` pada `/etc/nginx/nginx.conf`.
+- **Hasil verifikasi (After):** pemeriksaan dari Ubuntu Target menggunakan `curl -I http://192.168.10.5/dashboard.html` menghasilkan HTTP 200 dengan header `Server: nginx`, tanpa nomor versi maupun label Ubuntu.
+- **Cakupan dan batasan:** hasil verifikasi terbatas pada header respons halaman dashboard. Halaman error dan tampilan browser tidak termasuk pengujian ini. Nama produk Nginx tetap terlihat; kontrol tidak menggantikan pembaruan keamanan maupun mencegah seluruh metode identifikasi versi.
 
-## C — Data & Application
+Bukti:
+
+- [Header dan konfigurasi BEFORE](<evidence/kontrol B3 — menyembunyikan versi Nginx/before-nginx-version.png>)
+- [Konfigurasi server_tokens off](<evidence/kontrol B3 — menyembunyikan versi Nginx/server-token-off.png>)
+- [Header AFTER tanpa nomor versi, HTTP 200](<evidence/kontrol B3 — menyembunyikan versi Nginx/after-nginx-version.png>)
+
+## 5. Kategori C — Data & Application
 
 ### C1. Security Rules dan validasi payload — Done
 
-- **Before:** file rules sudah berisi validasi, tetapi PATCH `humidity:150` masih mendapat HTTP 200. Artinya validasi belum berlaku efektif pada namespace yang diuji.
-- **Perubahan:** menyelaraskan namespace aplikasi `demo-melon-lab` dengan instance rules melalui konfigurasi `database` berbentuk array berisi `instance` dan `rules`, kemudian restart emulator. Penulisan cabang sensor menggunakan syarat `newData.exists()`.
-- **Kebijakan:** akses default ditolak; cabang `/lab_dummy/sensor` mengizinkan baca/tulis dummy dengan field wajib `temperature`, `humidity`, `ec`, `updated_at`. Tipe harus angka, suhu 0–60, kelembapan 0–100, EC 0–10, timestamp positif, dan field tambahan ditolak oleh rules.
-- **After / verifikasi:** PUT data lengkap valid mendapat HTTP 200; PATCH `humidity:150` ditolak HTTP 401 dengan `Permission denied` pada namespace yang sama. Baca lokal dengan kelembapan 72 juga terlihat pada bukti C2.
-- **Batasan:** baru penerimaan data valid dan penolakan kelembapan di luar rentang yang dibuktikan. Tes tipe salah, field tambahan, akses root, serta penghapusan belum dilampirkan. Screenshot editor rules AFTER masih menunjukkan buffer berubah; bukti perilaku API adalah verifikasi efektif untuk tes yang dilakukan. Tambahkan screenshot konfigurasi tersimpan dan array instance final.
-- **Keamanan lab:** akses cabang dummy tetap tanpa autentikasi, dibatasi localhost/UFW dan proxy. Emulator bukan server produksi. REST masih **HTTP**, belum HTTPS. Rentang validasi ini bukan rekomendasi agronomi.
+- **Tujuan:** membatasi struktur serta rentang data sensor yang dapat disimpan pada cabang database aplikasi.
+- **Kondisi awal (Before):** file rules telah memuat validasi, tetapi PATCH dengan `humidity:150` masih memperoleh HTTP 200. Validasi belum diterapkan secara efektif pada namespace yang digunakan aplikasi.
+- **Implementasi:** menyelaraskan namespace `demo-melon-lab` dengan instance rules melalui konfigurasi `database` berbentuk array yang memuat `instance` dan `rules`, kemudian menjalankan ulang emulator. Penulisan pada cabang sensor menggunakan syarat `newData.exists()`.
+- **Kebijakan validasi:** akses ditolak secara default. Cabang `/lab_dummy/sensor` mengizinkan baca/tulis data dummy dengan field wajib `temperature`, `humidity`, `ec`, dan `updated_at`. Rules mensyaratkan tipe numerik, suhu 0–60, kelembapan 0–100, EC 0–10, timestamp positif, serta penolakan field tambahan.
+- **Hasil verifikasi (After):** PUT dengan data lengkap yang valid memperoleh HTTP 200, sedangkan PATCH dengan `humidity:150` ditolak dengan HTTP 401 dan pesan `Permission denied`. Pembacaan data valid dengan kelembapan 72 juga terdokumentasi pada C2.
+- **Cakupan dan batasan:** pengujian membuktikan penerimaan payload valid dan penolakan kelembapan di luar rentang. Penolakan tipe salah, field tambahan, akses root database, dan penghapusan belum diverifikasi dalam bukti yang dilampirkan. Bukti konfigurasi memperlihatkan proses pengeditan rules; hasil respons API menjadi dasar verifikasi perilaku yang diuji.
+- **Ketentuan laboratorium:** cabang dummy masih menggunakan akses tanpa autentikasi, dengan paparan jaringan dibatasi melalui loopback, UFW, dan proxy. Rentang validasi digunakan untuk demonstrasi teknis, bukan sebagai rekomendasi budidaya.
 
 Bukti:
 
@@ -123,11 +138,11 @@ Bukti:
 
 ### C2. Backup manual dan uji pemulihan data — Done
 
-- **Before:** data sensor dummy menunjukkan `humidity:72` sebelum ekspor.
-- **Perubahan:** mengekspor data dengan `firebase emulators:export` ke folder bertimestamp, kemudian mengubah kelembapan menjadi 80 sebagai pembeda kondisi aktif dan backup.
-- **After / verifikasi:** ekspor selesai dan metadata tersedia; screenshot verifikasi pemulihan menunjukkan GET HTTP 200 dengan kelembapan kembali 72 dan data sensor sesuai kondisi backup, bukan 80.
-- **Prosedur:** hentikan simulator sebelum uji; hentikan emulator lama secara bersih sebelum menjalankan instance dengan `--import`. Port taken pada percobaan awal merupakan bentrok proses, bukan bukti backup rusak. Simpan backup terpisah dari direktori ekspor operasional `./data`.
-- **Batasan:** screenshot command/log impor belum tersedia, sehingga tambahkan pada uji berikutnya untuk melengkapi jejak pemulihan. Backup manual masih berada di VM yang sama, belum terjadwal/off-host; tidak melindungi kehilangan seluruh VM. Ekspor data tidak otomatis mencadangkan konfigurasi, rules, simulator, atau dashboard. Kontrol ini tidak mengklaim backup produksi lengkap.
+- **Tujuan:** menyediakan salinan data emulator dan memverifikasi pengembalian data ke kondisi saat pencadangan.
+- **Kondisi awal (Before):** data sensor memiliki nilai `humidity:72` sebelum ekspor.
+- **Implementasi:** melakukan ekspor menggunakan `firebase emulators:export` ke direktori bertimestamp. Setelah ekspor, kelembapan diubah menjadi 80 untuk membedakan kondisi data aktif dari salinan cadangan. Pemulihan menggunakan mekanisme impor emulator.
+- **Hasil verifikasi (After):** ekspor dinyatakan selesai dan metadata tersedia. Pembacaan setelah pemulihan memperoleh HTTP 200 dengan kelembapan kembali menjadi 72, sesuai kondisi pencadangan dan berbeda dari nilai 80 setelah perubahan.
+- **Cakupan dan batasan:** bukti mencakup hasil ekspor, perubahan data, serta pembacaan data hasil pemulihan; perintah dan log impor tidak tercantum pada bukti. Pencadangan dilakukan secara manual pada VM yang sama, belum terjadwal maupun disimpan di luar VM. Ekspor ini mencakup data emulator, bukan keseluruhan konfigurasi, rules, simulator, dan dashboard, sehingga belum memberikan perlindungan terhadap kehilangan seluruh VM.
 
 Bukti:
 
@@ -136,14 +151,16 @@ Bukti:
 - [Perubahan setelah backup: 80](<evidence/kontrol C2 — backup dan uji pemulihan data Firebase Emulator/data-berubah-after-backup.png>)
 - [Verifikasi data kembali 72](<evidence/kontrol C2 — backup dan uji pemulihan data Firebase Emulator/restored-data.png>)
 
-### C3. Endpoint proxy sensor hanya untuk membaca — Not Yet
+### C3. Membatasi akses file konfigurasi dan data aplikasi — Done
 
-- **Rencana:** periksa blok aktif `location = /api/sensor` pada Nginx. Pastikan metode selain GET/HEAD ditolak dengan `limit_except GET { deny all; }` dan proxy hanya menunjuk path sensor yang diperlukan.
-- **Kriteria selesai:** GET dari client yang diizinkan menghasilkan HTTP 200; PATCH/PUT/DELETE melalui `/api/sensor` ditolak (misalnya HTTP 403), data tidak berubah, dan dashboard tetap berfungsi.
-- **Bukti:** belum tersedia. Konfigurasi ini pernah disarankan saat membuat dashboard, tetapi belum diperiksa pada VM; jangan diklaim sebagai perubahan baru jika ternyata sudah aktif.
+- **Tujuan:** membatasi akses lokal terhadap direktori aplikasi dan file konfigurasi kepada akun pemilik aplikasi.
+- **Kondisi awal (Before):** direktori `/home/iotuser/melon-lab` milik `iotuser:iotuser` memiliki permission `775` (`drwxrwxr-x`). File `firebase.json`, `database.rules.json`, dan `simulator.py` memiliki permission `664` (`-rw-rw-r--`). Direktori `data` dan `backup-20261015-143946` telah memiliki permission `700` sejak pemeriksaan awal.
+- **Implementasi:** menetapkan permission direktori aplikasi menjadi `700` dan ketiga file menjadi `600` menggunakan `chmod`. Permission direktori data dan backup dipertahankan; direktori dashboard `/var/www/html` tidak termasuk perubahan.
+- **Hasil verifikasi (After):** pemeriksaan `ls` menunjukkan permission direktori `drwx------` dan file `-rw-------`, dengan kepemilikan tetap `iotuser:iotuser`. Uji `test -r` pada `firebase.json` menghasilkan kode keluar `0` untuk pemilik dan `1` untuk akun `nobody`, yang menunjukkan akses baca pemilik diizinkan dan akses akun pembanding ditolak.
+- **Cakupan dan batasan:** pengujian baca langsung dilakukan pada `firebase.json`; hasil akses dipengaruhi permission file dan direktori induknya. Operasional simulator serta dashboard setelah perubahan permission tidak termasuk bukti pengujian ini. Kontrol tidak mengenkripsi data serta tidak mencegah akses root atau penyalahgunaan akun pemilik yang telah dikompromikan.
 
-## Prioritas berikutnya
+Bukti:
 
-1. Lengkapi screenshot konfigurasi instance/rules tersimpan, dashboard dan simulator setelah B1/B2, pemulihan akses Fail2ban, serta command/log impor backup.
-2. Periksa dan kerjakan B3 serta C3 dengan bukti kondisi awal dan verifikasi AFTER; tidak perlu melemahkan konfigurasi yang sudah aman demi screenshot.
-3. Tinjau kebutuhan HTTPS, autentikasi aplikasi, pembaruan paket, dan backup off-host sebelum penggunaan di luar lab. Hal-hal tersebut belum dinyatakan selesai dalam checklist ini.
+- [Permission file, direktori aplikasi, data dan backup BEFORE](<evidence/kontrol C3 — Membatasi akses file konfigurasi dan data aplikasi/before-file-permissions.png>)
+- [Penerapan chmod dan permission AFTER](<evidence/kontrol C3 — Membatasi akses file konfigurasi dan data aplikasi/after-file-permissions.png>)
+- [Pemilik dapat membaca, akun nobody ditolak](<evidence/kontrol C3 — Membatasi akses file konfigurasi dan data aplikasi/hasil-hak-akses.png>)
