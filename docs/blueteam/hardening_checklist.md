@@ -35,6 +35,8 @@ Seluruh implementasi dan pengujian dilakukan pada lingkungan laboratorium menggu
 
 **Rekapitulasi: 8 Done, 0 Partial, dan 0 Not Yet.** Implementasi terdiri atas **2 kontrol kategori A, 3 kontrol kategori B, dan 3 kontrol kategori C**, sehingga memenuhi jumlah minimal delapan kontrol dengan sedikitnya dua kontrol pada setiap kategori. Status dinilai berdasarkan bukti yang tersedia dan dibatasi oleh cakupan verifikasi masing-masing kontrol; status tersebut tidak menyatakan sistem telah aman untuk penggunaan produksi.
 
+Rekapitulasi tersebut berlaku untuk **delapan kontrol awal A1–C3**. Empat kontrol lanjutan pada bagian 6 masih berstatus **Not Yet (rencana; belum terverifikasi)** dan tidak dihitung sebagai implementasi selesai. Keseluruhan daftar memuat **12 kontrol: 8 Done, 0 Partial, dan 4 Not Yet**. Kekurangan bukti pada kontrol awal tetap dicatat pada uraian masing-masing dan tidak dihitung ulang sebagai kontrol baru.
+
 ## 3. Kategori A — Access & Authentication
 
 ### A1. Menonaktifkan login root langsung melalui SSH — Done
@@ -164,3 +166,20 @@ Bukti:
 - [Permission file, direktori aplikasi, data dan backup BEFORE](<evidence/kontrol C3 — Membatasi akses file konfigurasi dan data aplikasi/before-file-permissions.png>)
 - [Penerapan chmod dan permission AFTER](<evidence/kontrol C3 — Membatasi akses file konfigurasi dan data aplikasi/after-file-permissions.png>)
 - [Pemilik dapat membaca, akun nobody ditolak](<evidence/kontrol C3 — Membatasi akses file konfigurasi dan data aplikasi/hasil-hak-akses.png>)
+
+## 6. Rencana Hardening Lanjutan
+
+Empat rencana sederhana berikut mengacu pada tujuan kontrol **NIST SP 800-53 Rev. 5** sebagai panduan
+
+| ID | Rencana Kontrol | Bukti yang Perlu Disiapkan | Acuan NIST | Status |
+|---|---|---|---|---|
+| B4 | Memastikan daftar isi direktori web tidak ditampilkan melalui pengaturan `autoindex off` pada Nginx. | Konfigurasi dan uji direktori tanpa file index: daftar file tidak muncul; dashboard tetap dapat diakses. | CM-7 | Not Yet |
+| A3 | Membatasi akun yang boleh login SSH menggunakan `AllowUsers`, misalnya hanya `iotuser` sesuai kebutuhan administrasi. | Konfigurasi efektif, login akun yang diizinkan berhasil, dan akun uji lain dengan kredensial valid ditolak karena aturan akses. | AC-3 | Not Yet |
+| B5 | Menonaktifkan X11 forwarding SSH yang tidak digunakan melalui `X11Forwarding no`. | Konfigurasi efektif menunjukkan `x11forwarding no`; sesi SSH biasa tetap berfungsi. | CM-7 | Not Yet |
+| C5 | Memblokir akses HTTP ke file/direktori tersembunyi melalui Nginx, seperti `.env` dan `.git`. | Konfigurasi dan uji file tersembunyi dummy yang benar-benar ada: akses ditolak tanpa menampilkan isinya; dashboard/API tetap berfungsi. | AC-3 | Not Yet |
+
+Jika daftar direktori sudah nonaktif, catat sebagai verifikasi pengaturan yang ada, bukan perubahan before/after yang dibuat-buat. Pengujian file tersembunyi menggunakan file dummy tanpa rahasia; HTTP 404 untuk file yang tidak ada saja tidak membuktikan pemblokiran. Atur pengecualian `.well-known` bila diperlukan untuk layanan yang sah. Status diubah menjadi **Done** setelah bukti dan fungsi normal diperiksa.
+
+Sebelum mengubah SSH, pastikan semua akun administrasi yang diperlukan masuk daftar izin, siapkan akses konsol VM, dan validasi konfigurasi. Uji penolakan akun dilakukan terbatas agar tidak memicu Fail2ban; jangan memakai password salah sebagai bukti penolakan `AllowUsers`. Jika X11 forwarding sudah nonaktif, dokumentasikan sebagai verifikasi kondisi yang ada. Seluruh tambahan tetap berupa rencana dan belum diterapkan melalui perubahan dokumen ini.
+
+Referensi: [NIST SP 800-53 Rev. 5 — Security and Privacy Controls for Information Systems and Organizations](https://doi.org/10.6028/NIST.SP.800-53r5).
