@@ -174,12 +174,8 @@ Empat rencana sederhana berikut mengacu pada tujuan kontrol **NIST SP 800-53 Rev
 | ID | Rencana Kontrol | Bukti yang Perlu Disiapkan | Acuan NIST | Status |
 |---|---|---|---|---|
 | B4 | Memastikan daftar isi direktori web tidak ditampilkan melalui pengaturan `autoindex off` pada Nginx. | Konfigurasi dan uji direktori tanpa file index: daftar file tidak muncul; dashboard tetap dapat diakses. | CM-7 | Not Yet |
-| A3 | Membatasi akun yang boleh login SSH menggunakan `AllowUsers`, misalnya hanya `iotuser` sesuai kebutuhan administrasi. | Konfigurasi efektif, login akun yang diizinkan berhasil, dan akun uji lain dengan kredensial valid ditolak karena aturan akses. | AC-3 | Not Yet |
-| B5 | Menonaktifkan X11 forwarding SSH yang tidak digunakan melalui `X11Forwarding no`. | Konfigurasi efektif menunjukkan `x11forwarding no`; sesi SSH biasa tetap berfungsi. | CM-7 | Not Yet |
+| A3 | Membatasi waktu penyelesaian autentikasi SSH melalui `LoginGraceTime 30`. | Konfigurasi efektif menunjukkan `logingracetime 30`; koneksi baru yang tidak menyelesaikan autentikasi terputus sekitar 30 detik, sedangkan login normal tetap berhasil. | CM-6 | Not Yet |
+| B5 | Mencegah dashboard ditampilkan dalam iframe melalui header Nginx `X-Frame-Options: DENY` untuk mengurangi risiko clickjacking. | Konfigurasi dan hasil `curl -I` menunjukkan header; browser menolak dashboard dalam iframe pada halaman uji dari origin berbeda, sedangkan akses dashboard langsung tetap berhasil. | CM-6 | Not Yet |
 | C5 | Memblokir akses HTTP ke file/direktori tersembunyi melalui Nginx, seperti `.env` dan `.git`. | Konfigurasi dan uji file tersembunyi dummy yang benar-benar ada: akses ditolak tanpa menampilkan isinya; dashboard/API tetap berfungsi. | AC-3 | Not Yet |
-
-Jika daftar direktori sudah nonaktif, catat sebagai verifikasi pengaturan yang ada, bukan perubahan before/after yang dibuat-buat. Pengujian file tersembunyi menggunakan file dummy tanpa rahasia; HTTP 404 untuk file yang tidak ada saja tidak membuktikan pemblokiran. Atur pengecualian `.well-known` bila diperlukan untuk layanan yang sah. Status diubah menjadi **Done** setelah bukti dan fungsi normal diperiksa.
-
-Sebelum mengubah SSH, pastikan semua akun administrasi yang diperlukan masuk daftar izin, siapkan akses konsol VM, dan validasi konfigurasi. Uji penolakan akun dilakukan terbatas agar tidak memicu Fail2ban; jangan memakai password salah sebagai bukti penolakan `AllowUsers`. Jika X11 forwarding sudah nonaktif, dokumentasikan sebagai verifikasi kondisi yang ada. Seluruh tambahan tetap berupa rencana dan belum diterapkan melalui perubahan dokumen ini.
 
 Referensi: [NIST SP 800-53 Rev. 5 — Security and Privacy Controls for Information Systems and Organizations](https://doi.org/10.6028/NIST.SP.800-53r5).
