@@ -110,6 +110,7 @@ Seluruh hasil pengujian dan log sistem diambil langsung dari console VirtualBox 
 - `docs/redteam/evidence/RT-02/rt02-log-auth.png` & `rt02-log-fail2ban.png`: Bukti pencatatan insiden pada `auth.log` dan aksi penindakan Fail2ban.
 - `docs/redteam/evidence/RT-03/rt03-curl-401-403.png`: Bukti respons penolakan HTTP 401 dan 403 dari terminal CyberOps.
 - `docs/redteam/evidence/RT-03/rt03-log-nginx-403.png`: Bukti catatan akses berbahaya pada log web server Nginx.
+- `docs/redteam/evidence/so-sguil-alerts.png`: Bukti status aktif konsol monitoring Sguil pada Security Onion dengan timestamp tersinkronisasi.
 
 Seluruh detail pengamatan, korelasi waktu (WIB vs UTC), analisis arsitektur, dan rekomendasi dirangkum dalam dokumen utama **[Log Purple Team](docs/purple-team-log.md)**.
 
@@ -121,7 +122,7 @@ Seluruh detail pengamatan, korelasi waktu (WIB vs UTC), analisis arsitektur, dan
 | Port `9000` dipakai proses Java lama (Fase 1). | Identifikasi PID proses Java yang tertinggal dan restart proses secara bersih. | Tuntas |
 | Kontrol SSH A4 (`publickey,password`) menolak brute-force password murni secara langsung. | Pengujian RT-02 dibagi menjadi dua tahap: (1) bukti penolakan tanpa key, dan (2) pemasangan key sementara CyberOps untuk menguji batas gagal password Fail2ban. Key sementara segera dihapus setelah pengujian. | Tuntas (Baseline kembali ke 2 key sah) |
 | Simulator memperbarui data secara periodik sehingga nilai numerik sensor terus bergerak. | Pembuktian integritas data pada RT-03 difokuskan pada penolakan HTTP `403 Forbidden` di Nginx dan tidak adanya modifikasi data dari penyerang luar. | Tuntas |
-| Layar Security Onion (`SO-KEL10`) berada dalam status screensaver terkunci password. | Bukti deteksi difokuskan pada log internal host target (`auth.log`, `fail2ban.log`, `access.log`); verifikasi alert Sguil (Snort/Suricata) dicatat sebagai batasan yang dapat diverifikasi saat sesi buka-kunci VM bersama pengguna. | Tercatat dalam batasan pengujian |
+| Konsol Security Onion (`SO-KEL10`) sempat terkunci screensaver. | Pengguna membuka sesi konsol; tangkapan layar antarmuka Sguil (monitoring NIDS) berhasil diambil dan didokumentasikan ke repositori. | Tuntas |
 
 ## 7. Rencana Berikutnya
 

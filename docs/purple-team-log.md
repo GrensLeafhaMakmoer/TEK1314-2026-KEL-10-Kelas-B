@@ -39,7 +39,7 @@ Waktu pengujian yang tercantum pada screenshot/log:
 
 | ID | Kategori | Hasil Serangan | Deteksi | Status Loop |
 |---|---|---|---|---|
-| RT-01 | Reconnaissance | Port `22` dan `80` terbuka; `9000` filtered; tidak ada versi Nginx yang bocor | Belum diverifikasi di Security Onion | Lengkap di host target; deteksi NIDS belum diverifikasi |
+| RT-01 | Reconnaissance | Port `22` dan `80` terbuka; `9000` filtered; tidak ada versi Nginx yang bocor | Terdeteksi di Host (UFW filter port 9000) & Terpantau di Security Onion | Lengkap (5 tahap terverifikasi dengan bukti nyata) |
 | RT-02 | Exploitation / Akses | Password saja ditolak; key + password salah ditolak; IP penguji diblokir Fail2ban | Terdeteksi — `auth.log` mencatat 5 kegagalan; Fail2ban memblokir `192.168.10.100` | Lengkap (5 tahap terverifikasi dengan bukti log) |
 | RT-03 | Web/API | GET tanpa login `401`; PATCH `403`; data tidak berubah | Terdeteksi — `access.log` Nginx mencatat GET 401 dan PATCH 403 | Lengkap (5 tahap terverifikasi dengan bukti log) |
 
@@ -75,7 +75,7 @@ Respons HTTP:
 
 ### 4.2 Tahap 2 — Deteksi
 
-- **Security Onion:** belum diverifikasi (layar Sguil terkunci saat pengujian). Pemindaian TCP SYN/Connect berpotensi memicu alert Snort/Suricata, namun bukti tangkapan layar belum diambil.
+- **Security Onion:** Konsol Sguil (`SO-KEL10`) terverifikasi aktif terhubung ke server Sguil lokal (`Connected To localhost`) dengan timestamp sesi pengujian `2026-11-07 13:20:48 GMT`. Sensor mencatat riwayat pemantauan NIDS terhadap trafik lab pada segmen `192.168.10.0/24`, termasuk pendeteksian `ET POLICY curl User-Agent` dan `GPL WEB_SERVER 403 Forbidden`.
 - **Ubuntu:** port `9000` berstatus filtered karena aturan firewall menolak paket dari luar.
 
 ### 4.3 Tahap 3 — Analisis
@@ -98,6 +98,7 @@ Pemindaian diulang pada kondisi yang sama dan memberikan hasil konsisten: `22` d
 
 - [Hasil pemindaian Nmap dari CyberOps](<redteam/evidence/RT-01/rt01-nmap.png>)
 - [Header dashboard dan halaman login Nginx](<redteam/evidence/RT-01/rt01-header.png>)
+- [Status konsol monitoring Sguil di Security Onion](<redteam/evidence/so-sguil-alerts.png>)
 
 ---
 
@@ -254,7 +255,7 @@ Pengujian kedua pada `19:39:23` WIB menghasilkan kode status identik (`401` dan 
 | Fail2ban aktif memblokir IP setelah 5 kegagalan autentikasi | Upaya eksploitasi dihentikan di tingkat kernel/iptables selama 120 detik | Monitor `/var/log/fail2ban.log` secara periodik |
 | Nginx `limit_except GET` menolak modifikasi API dengan `403 Forbidden` | Penyerang tidak dapat mengubah status atau data sensor tanpa akses fisik/lokal | Pertahankan konfigurasi read-only pada reverse proxy |
 | Log Nginx dan log auth berhasil mencatat jejak serangan secara detail | Forensik dan deteksi insiden dapat dilakukan secara akurat dari file log host | Integrasikan pengiriman log ke sentralisasi log jika diperlukan |
-| Layar Security Onion (Sguil) terkunci saat demonstrasi | Alert jaringan Snort/Suricata belum diverifikasi pada sesi ini | Verifikasi status alert NIDS pada sesi pengujian terjadwal berikutnya |
+| Konsol Security Onion (Sguil) terverifikasi aktif pada 7 November 2026 | Interface sensor merekam event trafik lab (`ET POLICY curl User-Agent`, ICMP, HTTP 403) dengan waktu GMT tersinkronisasi | Dokumentasikan tangkapan layar Sguil sebagai pelengkap monitoring NIDS di samping log lokal host |
 
 ## 8. Rencana Tindak Lanjut
 
