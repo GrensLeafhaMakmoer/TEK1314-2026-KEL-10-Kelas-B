@@ -2,26 +2,29 @@
 
 **Mata kuliah:** TEK1314 — Keamanan Siber  
 **Proyek IoT:** Sistem autodosing nutrisi AB Mix pada tanaman melon  
-**Cakupan laporan:** Progres sampai checkpoint pertemuan 9
+**Cakupan laporan:** Progres sampai checkpoint pertemuan 11 (Fase 2)
 
 ## 1. Anggota dan Pembagian Peran
 
 | Anggota | NIM | Peran | Tanggung Jawab |
 |---|---|---|---|
 | Ghazali Habibie A | J0404241145 | Lead | Koordinasi kelompok, konsistensi dokumentasi, dan persiapan presentasi. |
-| Gregorius Gil Ovidio Sebayang | J0404241088 | Red Team | Identifikasi layanan, penyusunan skenario pengujian, dan pencatatan hasil pengujian. |
-| Binggie Rashel Prasetyo | J0404241009 | Blue Team | Konfigurasi pertahanan, monitoring, analisis log, dan dokumentasi bukti. |
+| Gregorius Gil Ovidio Sebayang | J0404241088 | Red Team | Identifikasi layanan, penyusunan skenario pengujian, eksekusi serangan, dan pencatatan hasil. |
+| Binggie Rashel Prasetyo | J0404241009 | Blue Team | Konfigurasi pertahanan, monitoring, analisis log, dokumentasi bukti, dan pemulihan baseline. |
 
-## 2. Riwayat Kegiatan Awal
+## 2. Riwayat Kegiatan
 
 | Minggu | Kegiatan yang Tercatat | Hasil / Keterangan |
 |---|---|---|
 | 1 | Belum tersedia catatan kegiatan terpisah. | Tidak direkonstruksi tanpa catatan pendukung. |
-| 2 | Pembentukan kelompok dan pembagian peran; instalasi VirtualBox, pengunduhan ISO, serta pembuatan repository GitHub. | Lingkungan virtualisasi dan repository disiapkan untuk pekerjaan kelompok. Catatan awal mencantumkan Kali; attacker yang digunakan pada implementasi saat ini adalah CyberOps. |
-| 3 | Latihan dasar Linux dan identifikasi awal kebutuhan layanan backend. | MQTT `1883`, HTTP `80`, FTP `21`, dan SSH `22` sempat menjadi kandidat layanan. Implementasi replika selanjutnya menggunakan HTTP REST/JSON, bukan MQTT atau FTP. |
-| 4 | Perancangan topologi tiga node: Attacker, Target, dan Monitoring, beserta skema IP. | Dokumen desain menjadi dasar implementasi. Referensi subnet `.12`, KEL12, dan Arch Linux pada catatan lama tidak sesuai lab Kelompok 10; konfigurasi acuan terkini dicantumkan pada bagian 3. |
+| 2 | Pembentukan kelompok dan pembagian peran; instalasi VirtualBox, pengunduhan ISO, serta pembuatan repository GitHub. | Lingkungan virtualisasi dan repository disiapkan untuk pekerjaan kelompok. Attacker yang digunakan pada implementasi adalah CyberOps Workstation. |
+| 3 | Latihan dasar Linux dan identifikasi awal kebutuhan layanan backend. | Evaluasi kandidat layanan; implementasi replika difokuskan pada HTTP REST/JSON untuk API dan dashboard. |
+| 4 | Perancangan topologi tiga node: Attacker, Target, dan Monitoring, beserta skema IP. | Topologi host-only `192.168.10.0/24` ditetapkan: Target `.5`, Attacker `.100`, Security Onion `.200`, Host `.1`. |
+| 5–9 | Pembangunan backend replika (Firebase emulator, simulator Python, Nginx) dan penerapan hardening dasar (8 kontrol). | Layanan dummy berjalan normal; dokumentasi checklist hardening awal dan baseline trafik Minggu 9 selesai. |
+| 10 | Pengembangan checklist hardening lanjutan menjadi 14 kontrol dan penyusunan detail attack plan Fase 2. | Hardening diperluas: autentikasi ganda SSH (key + password), rate limiting Nginx, security headers, dan proteksi dotfiles. |
+| 11 | Eksekusi penuh skenario Purple Team (RT-01, RT-02, RT-03), pengumpulan bukti log autentik, dan penyusunan log Purple Team. | Siklus 5 tahap Purple Team berhasil dijalankan dan diverifikasi; key sementara dibersihkan; dokumen `docs/purple-team-log.md` diselesaikan. |
 
-Kegiatan lanjutan sampai checkpoint minggu 9 dirangkum pada bagian 4. 
+Kegiatan detail sampai checkpoint minggu 9 dirangkum pada bagian 4, dan eksekusi Fase 2 pada bagian 5. 
 
 ## 3. Lingkungan Replika yang Digunakan
 
@@ -68,31 +71,60 @@ Delapan kontrol telah didokumentasikan dalam [checklist hardening](docs/blueteam
 
 Ringkasan dan tautan screenshot tersedia pada [baseline trafik](docs/blueteam/baseline_traffic.md). Korelasi waktu antar-bukti perlu diverifikasi sebelum dianggap berasal dari satu sesi pengamatan yang sama.
 
-### 4.4. Rencana Pengujian Red Team Fase 2
+### 4.4. Rencana Pengujian Red Team Fase 2 (Arsip Rencana)
 
-[Attack plan](docs/redteam/attack_plan.md) telah disusun dengan tiga skenario dari tiga kategori berbeda:
+Pada checkpoint minggu 9, [attack plan](docs/redteam/attack_plan.md) telah dirancang untuk mencakup tiga skenario dari kategori berbeda:
 
-| ID | Kategori | Rencana dan Tools |
+| ID | Kategori | Rencana dan Tools Awal |
 |---|---|---|
 | RT-01 | Reconnaissance | Pemeriksaan port/layanan dan header HTTP menggunakan Nmap serta curl. |
-| RT-02 | Exploitation / Akses | Percobaan autentikasi SSH gagal secara manual dan terbatas menggunakan OpenSSH client untuk mengevaluasi Fail2ban. |
-| RT-03 | Web/API | Percobaan PATCH melalui curl pada endpoint baca `/api/sensor` untuk mengevaluasi penolakan perubahan data. |
+| RT-02 | Exploitation / Akses | Percobaan autentikasi SSH gagal secara manual menggunakan OpenSSH client untuk mengevaluasi Fail2ban. |
+| RT-03 | Web/API | Percobaan PATCH melalui curl pada endpoint `/api/sensor` untuk mengevaluasi penolakan modifikasi data. |
 
-Ketiga skenario masih berstatus **direncanakan** dalam attack plan. Pengujian kontrol yang sudah terdokumentasi tidak disamakan dengan penyelesaian lima tahap Purple Team. [Log Purple Team](docs/purple-team-log.md) belum berisi hasil pelaksanaan lengkap.
+Rencana pengujian ini telah sepenuhnya direalisasikan dan dieksekusi pada Fase 2 (pertemuan 11). Detail pelaksanaan dan temuan dicatat pada bagian 5 dan didokumentasikan lengkap pada [Log Purple Team](docs/purple-team-log.md).
 
-## 5. Kendala dan Tindak Lanjut
+## 5. Progres Fase 2 (Minggu 10–11) — Eksekusi Purple Team
 
-| Kendala / Temuan | Penanganan / Tindak Lanjut |
-|---|---|
-| Simulator menerima HTTP `401 Permission denied`. | Memeriksa namespace dan rules sensor/riwayat. Setelah penyesuaian dan restart emulator, simulator dilaporkan kembali berjalan. |
-| Port `9000` dipakai proses Java emulator lama. | Proses pemakai port diidentifikasi sebelum prosedur penghentian dan menjalankan ulang emulator; risiko kehilangan data tanpa ekspor diperhatikan. |
-| Blok `location /api/history` Nginx sempat bersarang. | Struktur diarahkan menjadi blok sejajar dan diuji dengan `nginx -t`; bukti berikutnya memperlihatkan respons HTTP `200` untuk kedua endpoint. |
-| Jam CyberOps dan Security Onion tidak selaras. | Sinkronkan jam dengan acuan yang sama, lalu ulangi baseline dan dokumentasikan waktu pengamatan. |
-| Output Nmap dalam bukti baseline masih menunjukkan port `9000` open, berbeda dari bukti hardening. | Verifikasi ulang listener, UFW, dan keterjangkauan database dari CyberOps sebelum menyimpulkan kondisi akhir. |
+### 5.1. Peningkatan Hardening Target (14 Kontrol)
 
+Pada minggu 10, tim Blue Team memperluas kontrol keamanan dari 8 kontrol awal menjadi 14 kontrol terverifikasi yang didokumentasikan dalam [hardening checklist](docs/blueteam/hardening_checklist.md):
+- **A1–A4 (Access & Authentication):** Penonaktifan login root SSH, integrasi Fail2ban, pembatasan durasi login (`LoginGraceTime 30`), dan penerapan autentikasi ganda wajib public key + password (`AuthenticationMethods publickey,password`).
+- **B1–B6 (Service & Attack Surface):** Firewall UFW aktif, binding database internal ke `127.0.0.1:9000`, penyembunyian banner versi Nginx (`server_tokens off`), rate limiting API Nginx (`limit_req_zone`), penambahan security headers (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`), serta pencegahan directory listing (autoindex off) dan pemblokiran akses file tersembunyi (`.*`).
+- **C1–C5 (Data & Application):** Aturan validasi schema pada backend, permission file aplikasi yang ketat (`chmod/chown`), dan prosedur backup-restore database dummy.
 
-## 6. Rencana Berikutnya
+### 5.2. Eksekusi Penuh Siklus 5 Tahap Purple Team Loop
 
-1. Menyelesaikan slide PDF checkpoint, latihan pembagian presentasi, serta demo monitoring trafik normal.
-2. Menjalankan tiga skenario attack plan hanya pada replika, lalu mencatat lima tahap: pengujian awal, deteksi, analisis, respons, dan verifikasi ulang.
-3. Menyusun Vulnerability Assessment Report untuk minggu 11 berdasarkan hasil aktual
+Pada tanggal 7 November 2026, tim melaksanakan pengujian terpadu Red Team dan Blue Team secara berurutan:
+
+| Skenario | Hasil Serangan (Red Team) | Deteksi & Pertahanan (Blue Team) | Evaluasi & Status Loop |
+|---|---|---|---|
+| **RT-01 (Reconnaissance)** | Nmap mendeteksi port `22` dan `80` terbuka; port `9000` **filtered**. Curl header mengonfirmasi server tanpa nomor versi, `X-Frame-Options: DENY`, dan akses `/dashboard.html` dialihkan (`303`) ke login. | UFW berhasil memfilter port internal database. Direktif `server_tokens off` mencegah footprinting versi web server secara pasif. | **Selesai (Lengkap).** Kontrol B1, B2, B3, dan B5 terbukti efektif. Permukaan serang terminimalisasi. |
+| **RT-02 (Akses SSH / Brute Force)** | Percobaan login tanpa key langsung ditolak (`Permission denied (publickey)`). Pada pengujian key sementara, 5 tebakan password salah ditolak berturut-turut, lalu koneksi diputus oleh target. | `/var/log/auth.log` mencatat 5 baris `Failed password for iotuser`. Fail2ban mendeteksi insiden, lalu mencatat `Ban 192.168.10.100` pada `/var/log/fail2ban.log` selama 120 detik hingga `Unban`. | **Selesai (Lengkap).** Kontrol A2 dan A4 terbukti efektif. Key Red Team segera dihapus pasca uji; baseline 2 key sah dipulihkan. |
+| **RT-03 (Manipulasi Data API)** | Permintaan data tanpa sesi menghasilkan HTTP `401 Unauthorized`. Percobaan modifikasi payload sensor (`PATCH /api/sensor` dengan `{"humidity":55}`) langsung ditolak dengan HTTP `403 Forbidden`. | `/var/log/nginx/access.log` mencatat request penyerang lengkap dengan timestamp, metode, kode status `401` dan `403`, serta User-Agent curl. | **Selesai (Lengkap).** Kontrol B6 (`limit_except GET`) mencegah manipulasi data sewenang-wenang. Integritas database dummy tetap aman. |
+
+### 5.3. Pengumpulan Bukti Log dan Screenshot Autentik
+
+Seluruh hasil pengujian dan log sistem diambil langsung dari console VirtualBox (`SRV-IOT-KEL10` dan `CYBEROPS-KEL10`) tanpa rekayasa data:
+- `docs/redteam/evidence/RT-01/rt01-nmap.png` & `rt01-header.png`: Bukti output Nmap dan header HTTP respons.
+- `docs/redteam/evidence/RT-02/rt02-ssh-tanpa-key.png`: Bukti penolakan SSH tanpa public key.
+- `docs/redteam/evidence/RT-02/rt02-log-auth.png` & `rt02-log-fail2ban.png`: Bukti pencatatan insiden pada `auth.log` dan aksi penindakan Fail2ban.
+- `docs/redteam/evidence/RT-03/rt03-curl-401-403.png`: Bukti respons penolakan HTTP 401 dan 403 dari terminal CyberOps.
+- `docs/redteam/evidence/RT-03/rt03-log-nginx-403.png`: Bukti catatan akses berbahaya pada log web server Nginx.
+
+Seluruh detail pengamatan, korelasi waktu (WIB vs UTC), analisis arsitektur, dan rekomendasi dirangkum dalam dokumen utama **[Log Purple Team](docs/purple-team-log.md)**.
+
+## 6. Kendala dan Tindak Lanjut
+
+| Kendala / Temuan | Penanganan / Tindak Lanjut | Status |
+|---|---|---|
+| Simulator menerima HTTP `401 Permission denied` (Fase 1). | Penyesuaian rules namespace Firebase emulator dan restart service simulator. | Tuntas |
+| Port `9000` dipakai proses Java lama (Fase 1). | Identifikasi PID proses Java yang tertinggal dan restart proses secara bersih. | Tuntas |
+| Kontrol SSH A4 (`publickey,password`) menolak brute-force password murni secara langsung. | Pengujian RT-02 dibagi menjadi dua tahap: (1) bukti penolakan tanpa key, dan (2) pemasangan key sementara CyberOps untuk menguji batas gagal password Fail2ban. Key sementara segera dihapus setelah pengujian. | Tuntas (Baseline kembali ke 2 key sah) |
+| Simulator memperbarui data secara periodik sehingga nilai numerik sensor terus bergerak. | Pembuktian integritas data pada RT-03 difokuskan pada penolakan HTTP `403 Forbidden` di Nginx dan tidak adanya modifikasi data dari penyerang luar. | Tuntas |
+| Layar Security Onion (`SO-KEL10`) berada dalam status screensaver terkunci password. | Bukti deteksi difokuskan pada log internal host target (`auth.log`, `fail2ban.log`, `access.log`); verifikasi alert Sguil (Snort/Suricata) dicatat sebagai batasan yang dapat diverifikasi saat sesi buka-kunci VM bersama pengguna. | Tercatat dalam batasan pengujian |
+
+## 7. Rencana Berikutnya
+
+1. Menyusun Vulnerability Assessment Report (VAR) dan materi presentasi evaluasi Fase 2 berbasis data logbook dan purple team log.
+2. Melakukan sinkronisasi repositori git kelompok ke remote GitHub (`origin/main`).
+3. Menjaga kestabilan VM target lab dan mempertahankan konfigurasi keamanan yang sudah teruji.
