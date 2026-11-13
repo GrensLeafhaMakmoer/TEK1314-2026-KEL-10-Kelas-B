@@ -12,7 +12,7 @@
 | Pelapor | Blue Team — Binggie Rashel Prasetyo |
 | Klasifikasi | Simulasi terkontrol (Red Team internal), bukan insiden produksi |
 | Severity | **Low–Medium** (tidak ada akses tidak sah, tidak ada perubahan data) |
-| Status | **Closed (simulasi)** — penyelidikan forensik akuisisi bukti masih tertunda |
+| Status | **Closed (simulasi)** — live triage dan akuisisi log selesai 13 November 2026; image disk/memori belum diambil |
 | Target | `192.168.10.5` (`srv-iot-kel10`) — Ubuntu Server replika |
 | Sumber serangan | `192.168.10.100` — CyberOps Workstation (Red Team) |
 | Dasar | [Purple Team Log](../purple-team-log.md), [VAR Fase 2](../reports/vulnerability-assessment-report.md) |
@@ -71,18 +71,23 @@ Insiden ditutup sebagai simulasi yang berhasil dipertahankan. Namun laporan ini 
 
 ### 4.1 Sumber Bukti
 
-| No | Sumber | Lokasi | Jenis | Status |
-|---|---|---|---|---|
-| E-01 | `auth.log` | `/var/log/auth.log` (host target) | Log autentikasi | Tersedia (screenshot) |
-| E-02 | `fail2ban.log` | `/var/log/fail2ban.log` | Log aksi pemblokiran | Tersedia (screenshot) |
-| E-03 | `access.log` | `/var/log/nginx/access.log` | Log akses HTTP | Tersedia (screenshot) |
-| E-04 | Sguil realtime events | Security Onion `192.168.10.200` | Alert NIDS | Tersedia (screenshot) |
-| E-05 | Output Nmap | CyberOps `192.168.10.100` | Hasil pemindaian | Tersedia (screenshot) |
-| E-06 | Output curl | CyberOps `192.168.10.100` | Hasil request HTTP | Tersedia (screenshot) |
-| E-07 | Salinan log ter-hash | Belum diakuisisi | Bukti forensik | **Tertunda** |
-| E-08 | Image disk / memori | Belum diakuisisi | Bukti forensik | **Tertunda** |
+Dokumen ini memakai dua skema ID yang berbeda agar tidak tertukar:
 
-Hash SHA-256 seluruh bukti screenshot tercatat pada [manifest bukti](evidence-manifest.md).
+- **`S-xx`** — *sumber* data (log, alert, output perintah) yang dianalisis pada fase ini.
+- **`E-xx`** — *artefak bukti* berupa berkas tangkapan layar yang tersimpan di repository (lihat [Lampiran 7.1](#71-bukti) dan [manifest bukti](evidence-manifest.md)).
+
+| ID | Sumber | Lokasi | Jenis | Status |
+|---|---|---|---|---|
+| S-01 | `auth.log` | `/var/log/auth.log` (host target) | Log autentikasi | Tersedia (screenshot E-01) |
+| S-02 | `fail2ban.log` | `/var/log/fail2ban.log` | Log aksi pemblokiran | Tersedia (screenshot E-02) |
+| S-03 | `access.log` | `/var/log/nginx/access.log` | Log akses HTTP | Tersedia (screenshot E-03) |
+| S-04 | Sguil realtime events | Security Onion `192.168.10.200` | Alert NIDS | Tersedia (screenshot E-04) |
+| S-05 | Output Nmap | CyberOps `192.168.10.100` | Hasil pemindaian | Tersedia (screenshot E-05) |
+| S-06 | Output curl | CyberOps `192.168.10.100` | Hasil request HTTP | Tersedia (screenshot E-06) |
+| S-07 | Salinan log ter-hash | `/home/iotuser/forensics/INC-2026-11-001/` | Bukti forensik | **Tersedia (13 Nov 2026)** — E-13 |
+| S-08 | Image disk / memori | Belum diakuisisi | Bukti forensik | Tertunda (opsional) |
+
+Hash SHA-256 seluruh bukti screenshot tercatat pada [manifest bukti](evidence-manifest.md). Salinan log diverifikasi dengan `sha256sum -c SHA256SUMS.txt` dan ketiga berkas dinyatakan `OK`.
 
 ### 4.2 Timeline Insiden
 
@@ -90,21 +95,21 @@ Seluruh waktu host target menggunakan **UTC**; CyberOps dan Security Onion mengg
 
 | Waktu UTC | Waktu WIB | Aktor | Peristiwa | Bukti |
 |---|---|---|---|---|
-| 12:29:16 | 19:29:16 | Red | Percobaan password SSH gagal ke-1 (`iotuser`, port 43130) | E-01 |
-| 12:29:17 | 19:29:17 | Blue | Fail2ban mencatat `Found 192.168.10.100` | E-02 |
-| 12:29:21 | 19:29:21 | Red | Percobaan password gagal ke-2 | E-02 |
-| 12:29:26 | 19:29:26 | Red | Percobaan gagal ke-3 (log: `message repeated 2 times`) | E-01 |
-| 12:29:27 | 19:29:27 | Blue | Fail2ban `Found` ke-3 | E-02 |
-| 12:29:28 | 19:29:28 | Target | Koneksi ditutup `[preauth]` | E-01 |
-| 12:29:56 | 19:29:56 | Red | Percobaan gagal ke-4 (port 37804) | E-01 |
-| 12:30:01 | 19:30:01 | Red | Percobaan gagal ke-5 | E-01 |
-| **12:30:02** | **19:30:02** | Blue | **`Ban 192.168.10.100`** (maxretry=5 tercapai) | E-02 |
-| 12:32:02 | 19:32:02 | Blue | `Unban 192.168.10.100` (bantime 120 detik berakhir) | E-02 |
-| 12:39:08 | 19:39:08 | Red | `GET /api/sensor` → `401`; `PATCH /api/sensor` → `403` | E-03 |
-| 12:39:10 | 19:39:10 | Red | Pengulangan GET `401` dan PATCH `403` | E-03 |
-| 12:39:23 | 19:39:23 | Red | Pengulangan GET `401` dan PATCH `403` | E-03 |
-| ±13:10 | ±20:10 | Red | Pemindaian Nmap `22,80,9000` → `22` open, `80` open, `9000` filtered | E-05 |
-| 13:20:48 | 20:20:48 | Blue | Sguil mengonfirmasi event NIDS terekam | E-04 |
+| 12:29:16 | 19:29:16 | Red | Percobaan password SSH gagal ke-1 (`iotuser`, port 43130) | S-01 / E-01 |
+| 12:29:17 | 19:29:17 | Blue | Fail2ban mencatat `Found 192.168.10.100` | S-02 / E-02 |
+| 12:29:21 | 19:29:21 | Red | Percobaan password gagal ke-2 | S-02 / E-02 |
+| 12:29:26 | 19:29:26 | Red | Percobaan gagal ke-3 (log: `message repeated 2 times`) | S-01 / E-01 |
+| 12:29:27 | 19:29:27 | Blue | Fail2ban `Found` ke-3 | S-02 / E-02 |
+| 12:29:28 | 19:29:28 | Target | Koneksi ditutup `[preauth]` | S-01 / E-01 |
+| 12:29:56 | 19:29:56 | Red | Percobaan gagal ke-4 (port 37804) | S-01 / E-01 |
+| 12:30:01 | 19:30:01 | Red | Percobaan gagal ke-5 | S-01 / E-01 |
+| **12:30:02** | **19:30:02** | Blue | **`Ban 192.168.10.100`** (maxretry=5 tercapai) | S-02 / E-02 |
+| 12:32:02 | 19:32:02 | Blue | `Unban 192.168.10.100` (bantime 120 detik berakhir) | S-02 / E-02 |
+| 12:39:08 | 19:39:08 | Red | `GET /api/sensor` → `401`; `PATCH /api/sensor` → `403` | S-03 / E-03 |
+| 12:39:10 | 19:39:10 | Red | Pengulangan GET `401` dan PATCH `403` | S-03 / E-03 |
+| 12:39:23 | 19:39:23 | Red | Pengulangan GET `401` dan PATCH `403` | S-03 / E-03 |
+| ±13:10 | ±20:10 | Red | Pemindaian Nmap `22,80,9000` → `22` open, `80` open, `9000` filtered | S-05 / E-05 |
+| 13:20:48 | 20:20:48 | Blue | Sguil mengonfirmasi event NIDS terekam | S-04 / E-04 |
 
 **Catatan korelasi:** `Ban` terjadi pada detik yang sama dengan percobaan gagal ke-5 (12:30:02), konsisten dengan `maxretry=5`. Tidak ada aktivitas SSH dari IP tersebut setelah `Unban` pada 12:32:02.
 
@@ -157,8 +162,8 @@ Seluruh waktu host target menggunakan **UTC**; CyberOps dan Security Onion mengg
 
 | Tindakan | Waktu | Bukti |
 |---|---|---|
-| Fail2ban otomatis memblokir `192.168.10.100` via iptables | 12:30:02 UTC | E-02 |
-| Nginx menolak seluruh metode non-GET pada `/api/` | 12:39:08 UTC | E-03 |
+| Fail2ban otomatis memblokir `192.168.10.100` via iptables | 12:30:02 UTC | S-02 / E-02 |
+| Nginx menolak seluruh metode non-GET pada `/api/` | 12:39:08 UTC | S-03 / E-03 |
 | Tidak ada perubahan konfigurasi darurat yang diperlukan | — | — |
 
 ### 5.2 Eradication
@@ -185,8 +190,8 @@ Seluruh waktu host target menggunakan **UTC**; CyberOps dan Security Onion mengg
 | Akses tidak sah | Tidak terjadi |
 | Perubahan data | Tidak terjadi |
 | Layanan pulih | Ya (tidak pernah terganggu) |
-| Bukti terkumpul | Sebagian (screenshot + hash) |
-| Investigasi forensik lengkap | **Belum** — menunggu sesi akuisisi bukti |
+| Bukti terkumpul | Screenshot + salinan log ter-hash (13 Nov 2026) |
+| Investigasi forensik lengkap | Sebagian — triage selesai; image disk/memori belum diambil |
 
 ---
 
@@ -211,22 +216,40 @@ Seluruh waktu host target menggunakan **UTC**; CyberOps dan Security Onion mengg
 | P2 | Susun runbook IR (kontak, eskalasi, kriteria severity, template laporan) | Minggu 13 |
 | P3 | Tambahkan TLS pada replika dan uji HSTS/cookie `Secure` | Minggu 13 |
 
-### 6.3 Rencana Tindak Lanjut Forensik (Minggu 12)
+### 6.3 Tindak Lanjut Forensik — Status Pelaksanaan
 
-Pekerjaan berikut **belum dapat diselesaikan** karena VM dalam keadaan *saved/poweroff* saat laporan ini disusun:
+Akuisisi live dilaksanakan pada **13 November 2026, 15:54–15:57 UTC** melalui konsol `SRV-IOT-KEL10`.
 
-1. Hidupkan `SRV-IOT-KEL10`, lakukan *live triage*: `date -Is`, `uptime`, `who`, `last -n 20`.
-2. Hitung hash log: `sha256sum /var/log/auth.log /var/log/fail2ban.log /var/log/nginx/access.log`.
-3. Salin log ke direktori bukti dengan nama bertimestamp dan catat hash-nya.
-4. Periksa persistensi: `crontab -l`, `systemctl list-unit-files --state=enabled`, `ss -tulpn`.
-5. Ambil screenshot tiap langkah dan simpan ke `docs/incident-response/evidence/`.
-6. Perbarui [manifest bukti](evidence-manifest.md) dengan hash salinan log.
+| Langkah | Status | Hasil |
+|---|---|---|
+| Live triage (`date`, `hostname`, `uname`, `uptime`, `who`, `last`) | **Selesai** | Host `srv-iot-kel10`, kernel 5.15.0-198, 3 sesi login tercatat |
+| Hash log sumber | **Selesai** | Tiga berkas di-hash; nilai tercatat di `SHA256SUMS.txt` |
+| Salin log ke folder bukti | **Selesai** | `~/forensics/INC-2026-11-001/` (auth, fail2ban, access) |
+| Verifikasi salinan | **Selesai** | `sha256sum -c SHA256SUMS.txt` → ketiga berkas `OK` |
+| Pemeriksaan persistensi | **Selesai** | `crontab` kosong; unit enabled normal |
+| Pemeriksaan listener | **Selesai** | Lihat temuan di bawah |
+| Screenshot tiap langkah | **Selesai** | E-09 … E-13 pada [manifest](evidence-manifest.md) |
+| Image disk/memori | **Belum** | Opsional, belum diwajibkan |
+
+#### Temuan Triage
+
+1. **Listener database tidak sepenuhnya loopback.** `ss -tulpn` menunjukkan `[::]:9000` milik proses Java (pid 1787). Artinya emulator Firebase mendengarkan seluruh interface IPv6, dan isolasi dari jaringan sepenuhnya bergantung pada UFW. Klaim "bind ke localhost" pada kontrol B2 perlu dikoreksi menjadi "dibatasi UFW + listener dual-stack".
+2. **Tidak ada persistensi pengguna.** `crontab -l` untuk `iotuser` kosong; tidak ada unit systemd tidak lazim pada 25 entri pertama.
+3. **Jumlah percobaan SSH adalah 5, bukan 4.** `grep -c "Failed password"` menghasilkan 4 baris karena satu baris berisi `message repeated 2 times`; total percobaan tetap 5 dan konsisten dengan `maxretry=5`.
+4. **Log tidak berubah sejak insiden.** Baris terakhir `fail2ban.log` adalah `Unban` pada 2026-11-07 12:32:02, tanpa aktivitas autentikasi baru.
+5. **Layanan utama aktif.** `fail2ban` dan `nginx` berstatus `active` saat triage.
+
+#### Catatan Metodologis
+
+Nilai hash lengkap salinan log **tidak ditranskripsi ke dokumen**. Percobaan transkripsi manual dari konsol gagal verifikasi (`FAILED`) sehingga dibatalkan; sumber otoritatif adalah `SHA256SUMS.txt` di dalam VM dan screenshot E-13. Ini adalah kontrol kualitas bukti, bukan kekurangan data.
 
 ---
 
 ## 7. Lampiran
 
 ### 7.1 Bukti
+
+Seluruh entri di bawah adalah **artefak bukti** (`E-xx`) berupa berkas tangkapan layar yang tersimpan di repository. ID `S-xx` pada §4.1 merujuk pada *sumber* data, bukan artefak.
 
 | ID | Deskripsi | Berkas | SHA-256 (ringkas) |
 |---|---|---|---|
@@ -238,6 +261,11 @@ Pekerjaan berikut **belum dapat diselesaikan** karena VM dalam keadaan *saved/po
 | E-06 | curl — 401/403 | [rt03-curl-401-403.png](../redteam/evidence/RT-03/rt03-curl-401-403.png) | `A1860DB0…2B99270E` |
 | E-07 | SSH tanpa key ditolak | [rt02-ssh-tanpa-key.png](../redteam/evidence/RT-02/rt02-ssh-tanpa-key.png) | `A30D043A…372DC868` |
 | E-08 | Header HTTP | [rt01-header.png](../redteam/evidence/RT-01/rt01-header.png) | `F66DB821…EDC55BCC` |
+| E-09 | Live triage — sistem & login | [triage-01-system-info.png](evidence/triage-01-system-info.png) | `064D746B…15AECB9F` |
+| E-10 | Pemeriksaan persistensi | [triage-02-persistence.png](evidence/triage-02-persistence.png) | `C2017D3D…0D4BD9F3` |
+| E-11 | Listener & status layanan | [triage-03-listeners.png](evidence/triage-03-listeners.png) | `B65B5578…63794F64` |
+| E-12 | Ringkasan log | [triage-04-log-summary.png](evidence/triage-04-log-summary.png) | `E1AD0FA3…29A82088` |
+| E-13 | `SHA256SUMS.txt` + verifikasi `OK` | [triage-05-hash-verify.png](evidence/triage-05-hash-verify.png) | `45B66DF9…A64B9D07` |
 
 Hash lengkap: [evidence-manifest.md](evidence-manifest.md).
 

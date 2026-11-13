@@ -6,3 +6,8 @@ a0b42d94f15647e8ea6a7efc1b11d814bd5175d3523d0d940865615d221d8546  docs/redteam/e
 a1860db0855f74191c5d088604a95800a1359e31933d7776d936d3fb2b99270e  docs/redteam/evidence/RT-03/rt03-curl-401-403.png
 a30d043a89c5426e8b80cc9054f62cce75ea56cd3abfdada4b1b2361372dc868  docs/redteam/evidence/RT-02/rt02-ssh-tanpa-key.png
 f66db821d96e669ca1ba16688376cac625332017ef92b99491f5dfdfedc55bcc  docs/redteam/evidence/RT-01/rt01-header.png
+064d746b3480646721aa647fe7d13c1717862747c5a37bb08a013fc715aecb9f  docs/incident-response/evidence/triage-01-system-info.png
+c2017d3d17ecfdc1aaf940a609d5c781b13fcea94ffefa6d10bdc42f0d4bd9f3  docs/incident-response/evidence/triage-02-persistence.png
+b65b55783f625944ddebc219a02ea249e0a3994be5481bb21b10f73d63794f64  docs/incident-response/evidence/triage-03-listeners.png
+e1ad0fa3d910f0273bd789cc2a1db1c8e0e9810b00c27cd1e7a6837129a82088  docs/incident-response/evidence/triage-04-log-summary.png
+45b66df9b417fdfe0e2e440aaaae595b8ec3c761d0a3d625c4a311e8a64b9d07  docs/incident-response/evidence/triage-05-hash-verify.png

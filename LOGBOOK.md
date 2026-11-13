@@ -125,6 +125,8 @@ Seluruh detail pengamatan, korelasi waktu (WIB vs UTC), analisis arsitektur, dan
 | Draf Incident Report (NIST SP 800-61r2) | [docs/incident-response/incident-report-draft.md](docs/incident-response/incident-report-draft.md) | Draf selesai |
 | Manifest bukti + hash SHA-256 | [docs/incident-response/evidence-manifest.md](docs/incident-response/evidence-manifest.md) | Selesai |
 | Berkas verifikasi hash `sha256sum` | `docs/incident-response/evidence.sha256` | Selesai |
+| Bukti live triage (5 screenshot) | `docs/incident-response/evidence/` | Selesai — 13 Nov 2026 |
+| Salinan log ter-hash di VM | `~/forensics/INC-2026-11-001/` | Selesai — `sha256sum -c` 3× OK |
 | Status attack plan diperbarui | [docs/redteam/attack_plan.md](docs/redteam/attack_plan.md) | Selesai |
 
 ### 6.2. Ringkasan Insiden Simulasi
@@ -135,14 +137,15 @@ Timeline lengkap dalam UTC dan WIB, pemetaan MITRE ATT&CK, IOC, analisis root ca
 
 ### 6.3. Kesenjangan yang Masih Terbuka
 
-| Kesenjangan | Dampak | Rencana |
+| Kesenjangan | Dampak | Status |
 |---|---|---|
-| Belum ada salinan log mentah ter-hash | Bukti forensik belum dapat di-query ulang | Akuisisi `auth.log`, `fail2ban.log`, `access.log` + `sha256sum` saat VM dihidupkan |
-| Belum ada image disk/memori | Analisis artefak dan persistensi terbatas | Opsional, hanya bila diwajibkan |
-| Log belum tersentralisasi | Risiko kehilangan bukti | Kirim log ke Security Onion |
-| Rule NIDS masih default | Deteksi kurang spesifik | Terapkan rule kustom Suricata dan uji ulang RT-02/RT-03 |
-| `bantime` Fail2ban 120 detik | Penyerang dapat menunggu blokir berakhir | Naikkan `bantime` + `bantime.increment` |
-| Replika masih HTTP tanpa TLS | Trafik dapat disadap | Aktifkan TLS + HSTS pada replika |
+| Salinan log mentah ter-hash | Bukti forensik dapat diverifikasi ulang | **Selesai** — `~/forensics/INC-2026-11-001/`, `sha256sum -c` → 3× OK |
+| Image disk/memori | Analisis artefak dan persistensi terbatas | Belum (opsional) |
+| Log belum tersentralisasi | Risiko kehilangan bukti | Terbuka — kirim ke Security Onion |
+| Rule NIDS masih default | Deteksi kurang spesifik | Terbuka — terapkan rule kustom Suricata |
+| `bantime` Fail2ban 120 detik | Penyerang dapat menunggu blokir berakhir | Terbuka — naikkan `bantime` |
+| Replika masih HTTP tanpa TLS | Trafik dapat disadap | Terbuka — aktifkan TLS + HSTS |
+| Listener database `[::]:9000` | Isolasi bergantung pada UFW saja | **Baru** — perbaiki binding ke loopback |
 
 ## 7. Kendala dan Tindak Lanjut
 
@@ -153,7 +156,7 @@ Timeline lengkap dalam UTC dan WIB, pemetaan MITRE ATT&CK, IOC, analisis root ca
 | Kontrol SSH A4 (`publickey,password`) menolak brute-force password murni secara langsung. | Pengujian RT-02 dibagi menjadi dua tahap: (1) bukti penolakan tanpa key, dan (2) pemasangan key sementara CyberOps untuk menguji batas gagal password Fail2ban. Key sementara segera dihapus setelah pengujian. | Tuntas (Baseline kembali ke 2 key sah) |
 | Simulator memperbarui data secara periodik sehingga nilai numerik sensor terus bergerak. | Pembuktian integritas data pada RT-03 difokuskan pada penolakan HTTP `403 Forbidden` di Nginx dan tidak adanya modifikasi data dari penyerang luar. | Tuntas |
 | Konsol Security Onion (`SO-KEL10`) sempat terkunci screensaver. | Pengguna membuka sesi konsol; tangkapan layar antarmuka Sguil (monitoring NIDS) berhasil diambil dan didokumentasikan ke repositori. | Tuntas |
-| VM `SRV-IOT-KEL10`, `CYBEROPS-KEL10`, dan `SO-KEL10` dalam status saved/poweroff saat penyusunan laporan Minggu 12. | Penyusunan VAR dan draf Incident Report tetap diselesaikan dari bukti yang sudah ada; akuisisi bukti live ditunda sampai VM dihidupkan. | Terbuka |
+| VM `SRV-IOT-KEL10` sempat dalam status saved/poweroff saat penyusunan laporan Minggu 12. | VM dihidupkan; live triage, akuisisi log, dan verifikasi hash dilaksanakan pada 13 November 2026 pukul 15:54–15:57 UTC. | **Tuntas** |
 
 ## 8. Rencana Berikutnya
 
