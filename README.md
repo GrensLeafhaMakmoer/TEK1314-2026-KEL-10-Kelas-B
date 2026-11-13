@@ -63,5 +63,8 @@ Simulator Python menyediakan data dummy. Security Onion, Sguil, dan tcpdump digu
 | [Baseline trafik](docs/blueteam/baseline_traffic.md) | Hasil pengamatan aktivitas normal pada lab. |
 | [Attack plan](docs/redteam/attack_plan.md) | Rencana skenario pengujian, tools, target, dan batas pelaksanaan. |
 | [Log Purple Team](docs/purple-team-log.md) | Tempat pencatatan pengujian, deteksi, analisis, respons, dan verifikasi ulang. |
+| [Vulnerability Assessment Report](docs/reports/vulnerability-assessment-report.md) | Penilaian risiko Fase 2, temuan, matriks risiko, dan rekomendasi. |
+| [Draf Incident Report](docs/incident-response/incident-report-draft.md) | Penanganan insiden simulasi sesuai NIST SP 800-61r2. |
+| [Manifest Bukti](docs/incident-response/evidence-manifest.md) | Daftar bukti, hash SHA-256, dan chain of custody. |
 | [Slide checkpoint minggu 9](docs/presentation-minggu9/slides.pdf) | Berkas PDF presentasi checkpoint. |
 

@@ -23,6 +23,7 @@
 | 5–9 | Pembangunan backend replika (Firebase emulator, simulator Python, Nginx) dan penerapan hardening dasar (8 kontrol). | Layanan dummy berjalan normal; dokumentasi checklist hardening awal dan baseline trafik Minggu 9 selesai. |
 | 10 | Pengembangan checklist hardening lanjutan menjadi 14 kontrol dan penyusunan detail attack plan Fase 2. | Hardening diperluas: autentikasi ganda SSH (key + password), rate limiting Nginx, security headers, dan proteksi dotfiles. |
 | 11 | Eksekusi penuh skenario Purple Team (RT-01, RT-02, RT-03), pengumpulan bukti log autentik, dan penyusunan log Purple Team. | Siklus 5 tahap Purple Team berhasil dijalankan dan diverifikasi; key sementara dibersihkan; dokumen `docs/purple-team-log.md` diselesaikan. |
+| 12 | Penyusunan Vulnerability Assessment Report Fase 2, draf Incident Report NIST SP 800-61r2, dan manifest bukti forensik. | VAR dan draf Incident Report tersedia; hash SHA-256 bukti tercatat; akuisisi log mentah dan rule NIDS kustom menjadi pekerjaan lanjutan. |
 
 Kegiatan detail sampai checkpoint minggu 9 dirangkum pada bagian 4, dan eksekusi Fase 2 pada bagian 5. 
 
@@ -114,7 +115,36 @@ Seluruh hasil pengujian dan log sistem diambil langsung dari console VirtualBox 
 
 Seluruh detail pengamatan, korelasi waktu (WIB vs UTC), analisis arsitektur, dan rekomendasi dirangkum dalam dokumen utama **[Log Purple Team](docs/purple-team-log.md)**.
 
-## 6. Kendala dan Tindak Lanjut
+## 6. Progres Minggu 12 — Digital Forensics & Incident Response
+
+### 6.1. Deliverable yang Diselesaikan
+
+| Deliverable | Berkas | Status |
+|---|---|---|
+| Vulnerability Assessment Report (Fase 2) | [docs/reports/vulnerability-assessment-report.md](docs/reports/vulnerability-assessment-report.md) | Selesai |
+| Draf Incident Report (NIST SP 800-61r2) | [docs/incident-response/incident-report-draft.md](docs/incident-response/incident-report-draft.md) | Draf selesai |
+| Manifest bukti + hash SHA-256 | [docs/incident-response/evidence-manifest.md](docs/incident-response/evidence-manifest.md) | Selesai |
+| Berkas verifikasi hash `sha256sum` | `docs/incident-response/evidence.sha256` | Selesai |
+| Status attack plan diperbarui | [docs/redteam/attack_plan.md](docs/redteam/attack_plan.md) | Selesai |
+
+### 6.2. Ringkasan Insiden Simulasi
+
+Insiden `INC-2026-11-001` mencakup rangkaian tiga tahap: reconnaissance (Nmap), brute force SSH (5 kegagalan → `Ban 192.168.10.100`), dan percobaan manipulasi data API (`GET 401`, `PATCH 403`). Tidak ada akses tidak sah, perubahan data, atau gangguan layanan. Severity dinilai **Low–Medium**.
+
+Timeline lengkap dalam UTC dan WIB, pemetaan MITRE ATT&CK, IOC, analisis root cause, serta rekomendasi tercatat pada draf Incident Report.
+
+### 6.3. Kesenjangan yang Masih Terbuka
+
+| Kesenjangan | Dampak | Rencana |
+|---|---|---|
+| Belum ada salinan log mentah ter-hash | Bukti forensik belum dapat di-query ulang | Akuisisi `auth.log`, `fail2ban.log`, `access.log` + `sha256sum` saat VM dihidupkan |
+| Belum ada image disk/memori | Analisis artefak dan persistensi terbatas | Opsional, hanya bila diwajibkan |
+| Log belum tersentralisasi | Risiko kehilangan bukti | Kirim log ke Security Onion |
+| Rule NIDS masih default | Deteksi kurang spesifik | Terapkan rule kustom Suricata dan uji ulang RT-02/RT-03 |
+| `bantime` Fail2ban 120 detik | Penyerang dapat menunggu blokir berakhir | Naikkan `bantime` + `bantime.increment` |
+| Replika masih HTTP tanpa TLS | Trafik dapat disadap | Aktifkan TLS + HSTS pada replika |
+
+## 7. Kendala dan Tindak Lanjut
 
 | Kendala / Temuan | Penanganan / Tindak Lanjut | Status |
 |---|---|---|
@@ -123,9 +153,11 @@ Seluruh detail pengamatan, korelasi waktu (WIB vs UTC), analisis arsitektur, dan
 | Kontrol SSH A4 (`publickey,password`) menolak brute-force password murni secara langsung. | Pengujian RT-02 dibagi menjadi dua tahap: (1) bukti penolakan tanpa key, dan (2) pemasangan key sementara CyberOps untuk menguji batas gagal password Fail2ban. Key sementara segera dihapus setelah pengujian. | Tuntas (Baseline kembali ke 2 key sah) |
 | Simulator memperbarui data secara periodik sehingga nilai numerik sensor terus bergerak. | Pembuktian integritas data pada RT-03 difokuskan pada penolakan HTTP `403 Forbidden` di Nginx dan tidak adanya modifikasi data dari penyerang luar. | Tuntas |
 | Konsol Security Onion (`SO-KEL10`) sempat terkunci screensaver. | Pengguna membuka sesi konsol; tangkapan layar antarmuka Sguil (monitoring NIDS) berhasil diambil dan didokumentasikan ke repositori. | Tuntas |
+| VM `SRV-IOT-KEL10`, `CYBEROPS-KEL10`, dan `SO-KEL10` dalam status saved/poweroff saat penyusunan laporan Minggu 12. | Penyusunan VAR dan draf Incident Report tetap diselesaikan dari bukti yang sudah ada; akuisisi bukti live ditunda sampai VM dihidupkan. | Terbuka |
 
-## 7. Rencana Berikutnya
+## 8. Rencana Berikutnya
 
-1. Menyusun Vulnerability Assessment Report (VAR) dan materi presentasi evaluasi Fase 2 berbasis data logbook dan purple team log.
-2. Melakukan sinkronisasi repositori git kelompok ke remote GitHub (`origin/main`).
-3. Menjaga kestabilan VM target lab dan mempertahankan konfigurasi keamanan yang sudah teruji.
+1. Menghidupkan VM lab untuk akuisisi bukti forensik: salinan log + `sha256sum`, pemeriksaan persistensi (`crontab`, `systemd`, `ss -tulpn`), dan screenshot pendukung.
+2. Menerapkan serta menguji rule kustom Suricata untuk brute force SSH dan `PATCH /api/` berulang.
+3. Mengirim log host target ke Security Onion dan mendokumentasikan bukti retensi terpusat.
+4. Menyusun catatan remediasi Minggu 13 dan mulai menyiapkan draf laporan akhir + video demo untuk Minggu 14–15.

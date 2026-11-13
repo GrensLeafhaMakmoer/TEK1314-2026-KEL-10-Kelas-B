@@ -55,4 +55,10 @@ Bukti berupa tangkapan layar disimpan di `docs/redteam/evidence/`. Analisis dan 
 
 Pengujian hanya dilakukan pada Target replika menggunakan data dummy, tanpa DoS, malware, atau tindakan terhadap sistem mitra. Konfigurasi hardening yang telah aktif tidak dinonaktifkan untuk membuat serangan berhasil. Pengujian dihentikan jika layanan tidak stabil atau akses pemulihan tidak tersedia.
 
-**Status seluruh skenario: Direncanakan.** Keberhasilan pemblokiran, deteksi, dan pemulihan akan dinilai berdasarkan hasil eksekusi, bukan hanya hasil yang diharapkan dalam dokumen ini.
+**Status seluruh skenario: Selesai dieksekusi (7 November 2026).** Ketiga skenario telah dijalankan penuh melalui lima tahap Purple Team Loop. Hasil aktual, deteksi, analisis, dan verifikasi ulang dicatat pada [Log Purple Team](../purple-team-log.md), sedangkan penilaian risiko dan rekomendasinya dirangkum pada [Vulnerability Assessment Report](../reports/vulnerability-assessment-report.md).
+
+| ID | Status | Ringkasan Hasil |
+|---|---|---|
+| RT-01 | Selesai | `22`/`80` open, `9000` filtered, versi Nginx tidak terekspos |
+| RT-02 | Selesai | Login tanpa key ditolak; brute force diblokir Fail2ban |
+| RT-03 | Selesai | `GET 401`, `PATCH 403`, data tidak berubah |
