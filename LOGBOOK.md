@@ -24,6 +24,7 @@
 | 10 | Pengembangan checklist hardening lanjutan menjadi 14 kontrol dan penyusunan detail attack plan Fase 2. | Hardening diperluas: autentikasi ganda SSH (key + password), rate limiting Nginx, security headers, dan proteksi dotfiles. |
 | 11 | Eksekusi penuh skenario Purple Team (RT-01, RT-02, RT-03), pengumpulan bukti log autentik, dan penyusunan log Purple Team. | Siklus 5 tahap Purple Team berhasil dijalankan dan diverifikasi; key sementara dibersihkan; dokumen `docs/purple-team-log.md` diselesaikan. |
 | 12 | Penyusunan Vulnerability Assessment Report Fase 2, draf Incident Report NIST SP 800-61r2, dan manifest bukti forensik. | VAR dan draf Incident Report tersedia; hash SHA-256 bukti tercatat; akuisisi log mentah dan rule NIDS kustom menjadi pekerjaan lanjutan. |
+| 13 | Remediasi temuan P1/P2 pada replika (Snort kustom, sentralisasi log, Fail2ban, loopback DB, TLS + HSTS + `melonlab.local`), penyelarasan kontrol B2, dan verifikasi ulang. | Seluruh target Minggu 13 selesai & terdokumentasi di `docs/blueteam/remediation-minggu13.md` beserta tangkapan layar verifikasi dan hash SHA-256. |
 
 Kegiatan detail sampai checkpoint minggu 9 dirangkum pada bagian 4, dan eksekusi Fase 2 pada bagian 5. 
 
@@ -141,11 +142,11 @@ Timeline lengkap dalam UTC dan WIB, pemetaan MITRE ATT&CK, IOC, analisis root ca
 |---|---|---|
 | Salinan log mentah ter-hash | Bukti forensik dapat diverifikasi ulang | **Selesai** — `~/forensics/INC-2026-11-001/`, `sha256sum -c` → 3× OK |
 | Image disk/memori | Analisis artefak dan persistensi terbatas | Belum (opsional) |
-| Log belum tersentralisasi | Risiko kehilangan bukti | Terbuka — kirim ke Security Onion |
-| Rule NIDS masih default | Deteksi kurang spesifik | Terbuka — terapkan rule kustom Suricata |
-| `bantime` Fail2ban 120 detik | Penyerang dapat menunggu blokir berakhir | Terbuka — naikkan `bantime` |
-| Replika masih HTTP tanpa TLS | Trafik dapat disadap | Terbuka — aktifkan TLS + HSTS |
-| Listener database `[::]:9000` | Isolasi bergantung pada UFW saja | **Baru** — perbaiki binding ke loopback |
+| Log belum tersentralisasi | Risiko kehilangan bukti | **Selesai** — `rsyslogd` TCP `:514` → `syslog-ng` `/var/log/remote/srv-iot-kel10.log` (`rotate 30`) |
+| Rule NIDS masih default | Deteksi kurang spesifik | **Selesai** — Snort `sid:1000010` & `1000011` aktif & teruji pada `securityonion_db` |
+| `bantime` Fail2ban 120 detik | Penyerang dapat menunggu blokir berakhir | **Selesai** — `bantime = 3600`, `bantime.increment = true`, jail `recidive` aktif |
+| Replika masih HTTP tanpa TLS | Trafik dapat disadap | **Selesai** — TLS `melonlab.local` + HSTS + cookie `Secure` + redirect `308` |
+| Listener database `[::]:9000` | Isolasi bergantung pada UFW saja | **Selesai** — terikat `[::ffff:127.0.0.1]:9000` (`pid=5816`), Nmap `9000/tcp filtered`, B2 diselaraskan |
 
 ## 7. Kendala dan Tindak Lanjut
 
@@ -160,7 +161,6 @@ Timeline lengkap dalam UTC dan WIB, pemetaan MITRE ATT&CK, IOC, analisis root ca
 
 ## 8. Rencana Berikutnya
 
-1. Menghidupkan VM lab untuk akuisisi bukti forensik: salinan log + `sha256sum`, pemeriksaan persistensi (`crontab`, `systemd`, `ss -tulpn`), dan screenshot pendukung.
-2. Menerapkan serta menguji rule kustom Suricata untuk brute force SSH dan `PATCH /api/` berulang.
-3. Mengirim log host target ke Security Onion dan mendokumentasikan bukti retensi terpusat.
-4. Menyusun catatan remediasi Minggu 13 dan mulai menyiapkan draf laporan akhir + video demo untuk Minggu 14–15.
+1. Menyiapkan draf laporan akhir, naskah presentasi, dan video demo (Minggu 14–15).
+2. Memfinalisasi Incident Report NIST SP 800-61r2 dengan merujuk hasil remediasi Minggu 13 (`docs/blueteam/remediation-minggu13.md`).
+3. Menjalankan latihan presentasi final dan pemeriksaan kelengkapan artefak repositori sebelum pengumpulan akhir.

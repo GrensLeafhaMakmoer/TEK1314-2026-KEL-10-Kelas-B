@@ -66,5 +66,6 @@ Simulator Python menyediakan data dummy. Security Onion, Sguil, dan tcpdump digu
 | [Vulnerability Assessment Report](docs/reports/vulnerability-assessment-report.md) | Penilaian risiko Fase 2, temuan, matriks risiko, dan rekomendasi. |
 | [Draf Incident Report](docs/incident-response/incident-report-draft.md) | Penanganan insiden simulasi sesuai NIST SP 800-61r2. |
 | [Manifest Bukti](docs/incident-response/evidence-manifest.md) | Daftar bukti, hash SHA-256, dan chain of custody. |
+| [Catatan Remediasi Minggu 13](docs/blueteam/remediation-minggu13.md) | Hasil remediasi P1/P2 (Snort kustom, sentralisasi log, Fail2ban, DB loopback, TLS + HSTS + `melonlab.local`). |
 | [Slide checkpoint minggu 9](docs/presentation-minggu9/slides.pdf) | Berkas PDF presentasi checkpoint. |
 

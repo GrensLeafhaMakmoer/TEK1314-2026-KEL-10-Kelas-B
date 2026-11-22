@@ -31,7 +31,7 @@ Kelengkapan bukti dan batasan verifikasi dicatat terpisah dari status penerapan 
 | A3 | Access & Authentication | Membatasi waktu penyelesaian autentikasi SSH | Done | Konfigurasi efektif berubah dari `logingracetime 120` menjadi `30`; screenshot after menunjukkan koneksi ditutup, tetapi tidak memuat pengukuran durasi. |
 | A4 | Access & Authentication | Mewajibkan SSH public key dan password | Done | Konfigurasi efektif `publickey,password`; login dengan key + password berhasil dan password saja ditolak. |
 | B1 | Service & Attack Surface | Membatasi akses masuk menggunakan UFW | Done | SSH/HTTP dibatasi ke IP lab yang ditentukan; port 9000 dari CyberOps berubah menjadi filtered. |
-| B2 | Service & Attack Surface | Mengikat database ke localhost | Done | Listener database berubah dari IP jaringan menjadi `127.0.0.1:9000`. |
+| B2 | Service & Attack Surface | Mengikat database ke localhost | Done | Listener diverifikasi `[::ffff:127.0.0.1]:9000` (`pid=5816`) & Nmap `9000/tcp filtered` pasca temuan regresi `[::]:9000` (13 Nov 2026). |
 | B3 | Service & Attack Surface | Mengurangi informasi versi Nginx pada respons | Done | Header berubah dari `nginx/1.18.0 (Ubuntu)` menjadi `nginx`; halaman dashboard merespons HTTP 200. |
 | B4 | Service & Attack Surface | Menonaktifkan daftar isi direktori web | Done | Screenshot pemeriksaan ulang menunjukkan `autoindex off` pada site Nginx yang diaktifkan. |
 | B5 | Service & Attack Surface | Mencegah framing melalui `X-Frame-Options: DENY` | Done | Screenshot menunjukkan konfigurasi DENY dan header pada respons dashboard HTTP 303 serta halaman login HTTP 200. |
@@ -165,14 +165,18 @@ Bukti:
 - **Tujuan:** menghilangkan paparan langsung layanan database pada antarmuka jaringan Target.
 - **Kondisi awal (Before):** layanan database mendengarkan pada `[::ffff:192.168.10.5]:9000`.
 - **Implementasi:** mengubah alamat host emulator pada `firebase.json` menjadi `127.0.0.1`. Alamat localhost digunakan sebagai tujuan akses lokal simulator dan upstream proxy Nginx.
-- **Hasil verifikasi (After):** `sudo ss -lntp 'sport = :9000'` menunjukkan listener `[::ffff:127.0.0.1]:9000`, bukan alamat jaringan atau wildcard. Akses REST lokal turut terdokumentasi pada pengujian C1 dan C2.
-- **Cakupan dan batasan:** verifikasi berfokus pada alamat listener dan akses REST lokal. Operasional simulator serta tampilan dashboard setelah perubahan tidak didokumentasikan pada bagian ini. Pembatasan loopback tidak menggantikan Security Rules dan tidak membatasi proses lokal yang telah memiliki akses.
+- **Hasil verifikasi awal (Minggu 9):** `sudo ss -lntp 'sport = :9000'` menunjukkan listener `[::ffff:127.0.0.1]:9000`, bukan alamat jaringan atau wildcard. Akses REST lokal turut terdokumentasi pada pengujian C1 dan C2.
+- **Temuan regresi & penyelarasan (13 November 2026 — Triage IR / VAR `F-02`):** saat pemeriksaan triage live insiden `INC-2026-11-001` (`evidence-manifest.md` §4), `ss -tulpn` sempat mendapati proses `java` (`pid=1787`) mendengarkan pada `[::]:9000` sehingga isolasi jaringan sementara bergantung pada UFW.
+- **Verifikasi ulang remediasi (22 November 2026 — Minggu 13):** konfigurasi `/home/iotuser/melon-lab/firebase.json` terkonfirmasi memakai `"host": "127.0.0.1"` dan `"port": 9000`, `sudo ss -tulpn` menunjukkan listener kembali terikat strictly pada `[::ffff:127.0.0.1]:9000` (`java`, `pid=5816`), serta pemindaian eksternal `nmap -sT -p 22,80,443,9000 melonlab.local` dari `CYBEROPS-KEL10` menunjukkan `9000/tcp filtered cslistener`.
+- **Cakupan dan batasan:** verifikasi membuktikan port `9000` tidak lagi mendengarkan di antarmuka eksternal maupun menerima koneksi eksternal. Pembatasan loopback tidak menggantikan Security Rules dan tidak membatasi proses lokal yang telah memiliki akses; emulator harus selalu dijalankan menggunakan `./firebase.json` agar tidak fallback ke wildcard.
 
 Bukti:
 
 - [Listener BEFORE](<evidence/kontrol B2 — Bind ke localhost/before-db-listener.png>)
 - [Konfigurasi localhost](<evidence/kontrol B2 — Bind ke localhost/localhost-config.png>)
-- [Listener AFTER](<evidence/kontrol B2 — Bind ke localhost/after-db-listener.png>)
+- [Listener AFTER (Minggu 9)](<evidence/kontrol B2 — Bind ke localhost/after-db-listener.png>)
+- [Verifikasi listener loopback & TLS (Minggu 13)](evidence/remediation-minggu13/06-srv-tls-cert-listeners-loopback.png)
+- [Verifikasi Nmap eksternal port 9000 filtered (Minggu 13)](evidence/remediation-minggu13/07-cyberops-nmap-https-hsts-secure-cookie.png)
 
 ### B3. Mengurangi informasi versi Nginx — Done
 
